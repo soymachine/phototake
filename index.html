@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>PhotoTake</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #f5c518;
+      --accent2: #e8a800;
+      --text: #f0f0f0;
+      --text-muted: #888;
+      --success: #4caf50;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.3px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .status-badge.ready { color: var(--success); border-color: var(--success); }
+    .status-badge.loading { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 12px 16px 0;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ── Panels ── */
+    .panel {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel.active { display: flex; }
+
+    /* ── Camera Panel ── */
+    #camera-panel {
+      position: relative;
+    }
+
+    .camera-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #overlay-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .camera-hint {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.85);
+      white-space: nowrap;
+      transition: opacity 0.3s;
+    }
+
+    .detection-indicator {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+    }
+
+    .detection-indicator.detected { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .detection-indicator.scanning { background: var(--accent); animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .camera-controls {
+      padding: 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      background: var(--bg);
+    }
+
+    .btn-capture {
+      flex: 1;
+      height: 56px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-capture:active { transform: scale(0.97); background: var(--accent2); }
+    .btn-capture:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-icon:active { transform: scale(0.95); }
+
+    /* ── Process Panel ── */
+    #process-panel {
+      overflow-y: auto;
+    }
+
+    .process-container {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .preview-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .preview-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .preview-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .preview-canvas-wrap {
+      position: relative;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 180px;
+    }
+
+    canvas {
+      max-width: 100%;
+      display: block;
+    }
+
+    .empty-state {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+
+    .adjust-controls {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slider-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      width: 70px;
+      flex-shrink: 0;
+    }
+
+    input[type=range] {
+      flex: 1;
+      height: 4px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .slider-val {
+      font-size: 12px;
+      color: var(--text);
+      width: 32px;
+      text-align: right;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:active { background: var(--accent2); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+    /* ── Gallery Panel ── */
+    #gallery-panel {
+      overflow-y: auto;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .gallery-item {
+      position: relative;
+      aspect-ratio: 4/3;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    .gallery-item:active { border-color: var(--accent); }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .gallery-item-date {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 8px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      font-size: 10px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .gallery-item-actions {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .gallery-item:hover .gallery-item-actions { opacity: 1; }
+
+    .gallery-action-btn {
+      width: 28px;
+      height: 28px;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gallery-empty {
+      grid-column: 1/-1;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(30,30,30,0.95);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 13px;
+      color: var(--text);
+      opacity: 0;
+      transition: all 0.3s;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── Loading overlay ── */
+    #loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 200;
+    }
+
+    #loading-overlay.show { display: flex; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 14px; color: var(--text-muted); }
+
+    /* ── Corner points (manual adjust) ── */
+    .corner-dot {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background: var(--accent);
+      border: 2px solid #000;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: grab;
+      touch-action: none;
+      z-index: 10;
+    }
+
+    .corner-dot:active { cursor: grabbing; }
+
+    #manual-adjust-wrap {
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📷</div>
+    PhotoTake
+  </div>
+  <div class="status-badge loading" id="cv-status">Cargando OpenCV…</div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab active" data-tab="camera">📸 Cámara</button>
+    <button class="tab" data-tab="process">✂️ Procesar</button>
+    <button class="tab" data-tab="gallery">🖼️ Galería (<span id="gallery-count">0</span>)</button>
+  </div>
+
+  <!-- Camera -->
+  <div class="panel active" id="camera-panel">
+    <div class="camera-viewport">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="overlay-canvas"></canvas>
+      <div class="camera-hint" id="camera-hint">Apunta la cámara a una foto revelada</div>
+      <div class="detection-indicator scanning" id="detection-indicator"></div>
+    </div>
+    <div class="camera-controls">
+      <button class="btn-icon" id="btn-flip" title="Cambiar cámara">🔄</button>
+      <button class="btn-capture" id="btn-capture" disabled>
+        <span>📸</span> Capturar
+      </button>
+      <button class="btn-icon" id="btn-torch" title="Linterna">🔦</button>
+    </div>
+  </div>
+
+  <!-- Process -->
+  <div class="panel" id="process-panel">
+    <div class="process-container">
+
+      <div class="preview-card">
+        <div class="preview-card-header">
+          <span class="preview-card-title">Foto capturada</span>
+          <span id="detection-label" style="font-size:12px;color:var(--text-muted)">—</span>
+        </div>
+        <div class="preview-canvas-wrap" id="raw-wrap">
+          <div class="empty-state">
+            <div class="icon">📷</div>
+            Captura una foto con la cámara primero
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-card" id="result-card">
+        <div class="preview-card-header">
+          <span class="preview-card-title">Foto detectada y recortada</span>
+          <button class="btn-icon" id="btn-reprocess" style="width:32px;height:32px;font-size:14px" title="Re-detectar">🔄</button>
+        </div>
+        <div class="preview-canvas-wrap" id="result-wrap">
+          <div class="empty-state">
+            <div class="icon">✂️</div>
+            La foto recortada aparecerá aquí
+          </div>
+        </div>
+        <div class="adjust-controls">
+          <div class="slider-row">
+            <span class="slider-label">Brillo</span>
+            <input type="range" id="sl-brightness" min="-100" max="100" value="0">
+            <span class="slider-val" id="val-brightness">0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Contraste</span>
+            <input type="range" id="sl-contrast" min="-100" max="100" value="0">
+            <span class="slider-val" id="val-contrast">0</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">Saturación</span>
+            <input type="range" id="sl-saturation" min="-100" max="100" value="0">
+            <span class="slider-val" id="val-saturation">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-secondary" id="btn-retake">↩ Repetir</button>
+        <button class="btn btn-primary" id="btn-save" disabled>💾 Guardar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Gallery -->
+  <div class="panel" id="gallery-panel">
+    <div class="gallery-grid" id="gallery-grid">
+      <div class="gallery-empty">
+        <div class="empty-state">
+          <div class="icon">🖼️</div>
+          Tu galería está vacía.<br>Captura tu primera foto revelada.
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Procesando…</div>
+</div>
+
+<!-- OpenCV.js from CDN -->
+<script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()"></script>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const state = {
+  cvReady: false,
+  stream: null,
+  facingMode: 'environment',
+  torch: false,
+  capturedDataUrl: null,
+  detectedCorners: null,
+  gallery: JSON.parse(localStorage.getItem('phototake_gallery') || '[]'),
+  detectionLoop: null,
+  adjustments: { brightness: 0, contrast: 0, saturation: 0 },
+};
+
+// ══════════════════════════════════════════════
+//  OPENCV READY
+// ══════════════════════════════════════════════
+function onOpenCvReady() {
+  state.cvReady = true;
+  document.getElementById('cv-status').textContent = 'Listo';
+  document.getElementById('cv-status').className = 'status-badge ready';
+  document.getElementById('btn-capture').disabled = false;
+  startCamera();
+}
+
+// ══════════════════════════════════════════════
+//  CAMERA
+// ══════════════════════════════════════════════
+async function startCamera() {
+  stopCamera();
+  try {
+    const constraints = {
+      video: {
+        facingMode: state.facingMode,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: false,
+    };
+    state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const video = document.getElementById('video');
+    video.srcObject = state.stream;
+    await video.play();
+    startDetectionLoop();
+  } catch (e) {
+    showToast('No se pudo acceder a la cámara: ' + e.message);
+    console.error(e);
+  }
+}
+
+function stopCamera() {
+  if (state.stream) {
+    state.stream.getTracks().forEach(t => t.stop());
+    state.stream = null;
+  }
+  stopDetectionLoop();
+}
+
+// ══════════════════════════════════════════════
+//  REAL-TIME DETECTION OVERLAY
+// ══════════════════════════════════════════════
+let detectionFrameId = null;
+
+function startDetectionLoop() {
+  stopDetectionLoop();
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('overlay-canvas');
+
+  function loop() {
+    if (!state.cvReady || video.readyState < 2) {
+      detectionFrameId = requestAnimationFrame(loop);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const corners = detectPhotoCorners(canvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const indicator = document.getElementById('detection-indicator');
+    const hint = document.getElementById('camera-hint');
+
+    if (corners) {
+      state.detectedCorners = corners;
+      drawDetectionOverlay(ctx, corners, canvas.width, canvas.height);
+      indicator.className = 'detection-indicator detected';
+      hint.textContent = '✓ Foto detectada — captura cuando quieras';
+    } else {
+      state.detectedCorners = null;
+      indicator.className = 'detection-indicator scanning';
+      hint.textContent = 'Apunta la cámara a una foto revelada';
+    }
+
+    detectionFrameId = requestAnimationFrame(loop);
+  }
+
+  detectionFrameId = requestAnimationFrame(loop);
+}
+
+function stopDetectionLoop() {
+  if (detectionFrameId) {
+    cancelAnimationFrame(detectionFrameId);
+    detectionFrameId = null;
+  }
+}
+
+function drawDetectionOverlay(ctx, corners, w, h) {
+  ctx.save();
+  // Fill
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(245, 197, 24, 0.15)';
+  ctx.fill();
+
+  // Stroke
+  ctx.beginPath();
+  ctx.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
+  ctx.closePath();
+  ctx.strokeStyle = '#f5c518';
+  ctx.lineWidth = Math.max(2, w * 0.003);
+  ctx.stroke();
+
+  // Corner dots
+  corners.forEach(c => {
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, Math.max(6, w * 0.008), 0, Math.PI * 2);
+    ctx.fillStyle = '#f5c518';
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
+
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════
+//  OPENCV PHOTO DETECTION
+// ══════════════════════════════════════════════
+function detectPhotoCorners(sourceCanvas) {
+  try {
+    const src = cv.imread(sourceCanvas);
+    const dst = new cv.Mat();
+    const gray = new cv.Mat();
+    const blurred = new cv.Mat();
+    const edges = new cv.Mat();
+    const contours = new cv.MatVector();
+    const hierarchy = new cv.Mat();
+
+    // Resize for performance
+    const maxDim = 800;
+    const scale = Math.min(1, maxDim / Math.max(src.rows, src.cols));
+    const small = new cv.Mat();
+    cv.resize(src, small, new cv.Size(
+      Math.round(src.cols * scale),
+      Math.round(src.rows * scale)
+    ));
+
+    cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
+    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+    cv.Canny(blurred, edges, 50, 150);
+
+    // Dilate to close gaps
+    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+    cv.dilate(edges, dst, kernel);
+    kernel.delete();
+
+    cv.findContours(dst, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+
+    let bestCorners = null;
+    const imgArea = small.rows * small.cols;
+    let bestArea = 0;
+
+    for (let i = 0; i < contours.size(); i++) {
+      const cnt = contours.get(i);
+      const peri = cv.arcLength(cnt, true);
+      const approx = new cv.Mat();
+      cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
+
+      if (approx.rows === 4) {
+        const area = Math.abs(cv.contourArea(approx));
+        const minArea = imgArea * 0.05;
+        const maxArea = imgArea * 0.98;
+
+        if (area > minArea && area < maxArea && area > bestArea) {
+          const pts = [];
+          for (let j = 0; j < 4; j++) {
+            pts.push({
+              x: approx.data32S[j * 2] / scale,
+              y: approx.data32S[j * 2 + 1] / scale,
+            });
+          }
+          bestCorners = orderCorners(pts);
+          bestArea = area;
+        }
+      }
+      approx.delete();
+      cnt.delete();
+    }
+
+    src.delete(); dst.delete(); gray.delete(); blurred.delete();
+    edges.delete(); contours.delete(); hierarchy.delete(); small.delete();
+
+    return bestCorners;
+  } catch (e) {
+    console.warn('Detection error:', e);
+    return null;
+  }
+}
+
+// Order: top-left, top-right, bottom-right, bottom-left
+function orderCorners(pts) {
+  const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
+  const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
+  const tl = pts.find(p => p.x < cx && p.y < cy) || pts[0];
+  const tr = pts.find(p => p.x >= cx && p.y < cy) || pts[1];
+  const br = pts.find(p => p.x >= cx && p.y >= cy) || pts[2];
+  const bl = pts.find(p => p.x < cx && p.y >= cy) || pts[3];
+  // Fallback: sort by angle
+  if (!tl || !tr || !br || !bl) {
+    pts.sort((a, b) => Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx));
+    return pts;
+  }
+  return [tl, tr, br, bl];
+}
+
+// ══════════════════════════════════════════════
+//  PERSPECTIVE CORRECTION
+// ══════════════════════════════════════════════
+function perspectiveCorrect(sourceCanvas, corners) {
+  const src = cv.imread(sourceCanvas);
+
+  const tl = corners[0], tr = corners[1], br = corners[2], bl = corners[3];
+
+  const widthTop = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+  const widthBot = Math.hypot(br.x - bl.x, br.y - bl.y);
+  const dstW = Math.round(Math.max(widthTop, widthBot));
+
+  const heightLeft = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+  const heightRight = Math.hypot(br.x - tr.x, br.y - tr.y);
+  const dstH = Math.round(Math.max(heightLeft, heightRight));
+
+  const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    tl.x, tl.y,
+    tr.x, tr.y,
+    br.x, br.y,
+    bl.x, bl.y,
+  ]);
+
+  const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    0, 0,
+    dstW, 0,
+    dstW, dstH,
+    0, dstH,
+  ]);
+
+  const M = cv.getPerspectiveTransform(srcPts, dstPts);
+  const dst = new cv.Mat();
+  cv.warpPerspective(src, dst, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR);
+
+  const outCanvas = document.createElement('canvas');
+  cv.imshow(outCanvas, dst);
+
+  src.delete(); dst.delete(); M.delete(); srcPts.delete(); dstPts.delete();
+
+  return outCanvas;
+}
+
+// ══════════════════════════════════════════════
+//  CAPTURE
+// ══════════════════════════════════════════════
+function capture() {
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  state.capturedDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+  // Switch to process tab
+  switchTab('process');
+  processCapture(canvas, state.detectedCorners);
+}
+
+function processCapture(sourceCanvas, corners) {
+  showLoading('Detectando y recortando foto…');
+
+  setTimeout(() => {
+    try {
+      // Show raw capture
+      const rawWrap = document.getElementById('raw-wrap');
+      rawWrap.innerHTML = '';
+      const rawCanvas = document.createElement('canvas');
+      rawCanvas.width = sourceCanvas.width;
+      rawCanvas.height = sourceCanvas.height;
+      rawCanvas.getContext('2d').drawImage(sourceCanvas, 0, 0);
+      rawCanvas.style.maxWidth = '100%';
+      rawCanvas.style.maxHeight = '220px';
+      rawCanvas.style.objectFit = 'contain';
+      rawWrap.appendChild(rawCanvas);
+
+      // Detect if no pre-detected corners
+      const detectedCorners = corners || detectPhotoCorners(sourceCanvas);
+      const label = document.getElementById('detection-label');
+
+      const resultWrap = document.getElementById('result-wrap');
+      resultWrap.innerHTML = '';
+
+      if (detectedCorners) {
+        label.textContent = '✓ Detectada automáticamente';
+        label.style.color = 'var(--success)';
+
+        const corrected = perspectiveCorrect(sourceCanvas, detectedCorners);
+        corrected.style.maxWidth = '100%';
+        corrected.style.maxHeight = '280px';
+        corrected.style.objectFit = 'contain';
+        resultWrap.appendChild(corrected);
+
+        state.resultCanvas = corrected;
+        document.getElementById('btn-save').disabled = false;
+      } else {
+        label.textContent = '⚠ No detectada — recorte manual';
+        label.style.color = 'var(--accent)';
+
+        // Fallback: show full image for manual crop hint
+        const fallback = document.createElement('canvas');
+        fallback.width = sourceCanvas.width;
+        fallback.height = sourceCanvas.height;
+        fallback.getContext('2d').drawImage(sourceCanvas, 0, 0);
+        fallback.style.maxWidth = '100%';
+        fallback.style.maxHeight = '280px';
+        resultWrap.appendChild(fallback);
+
+        state.resultCanvas = fallback;
+        document.getElementById('btn-save').disabled = false;
+
+        showToast('No se detectó foto automáticamente. Se guarda la imagen completa.');
+      }
+
+      resetAdjustments();
+      hideLoading();
+    } catch (e) {
+      hideLoading();
+      showToast('Error al procesar: ' + e.message);
+      console.error(e);
+    }
+  }, 50);
+}
+
+// ══════════════════════════════════════════════
+//  IMAGE ADJUSTMENTS
+// ══════════════════════════════════════════════
+function resetAdjustments() {
+  state.adjustments = { brightness: 0, contrast: 0, saturation: 0 };
+  document.getElementById('sl-brightness').value = 0;
+  document.getElementById('sl-contrast').value = 0;
+  document.getElementById('sl-saturation').value = 0;
+  document.getElementById('val-brightness').textContent = 0;
+  document.getElementById('val-contrast').textContent = 0;
+  document.getElementById('val-saturation').textContent = 0;
+}
+
+function applyAdjustments() {
+  if (!state.resultCanvas) return;
+  const src = state.resultCanvas;
+  const out = document.createElement('canvas');
+  out.width = src.width;
+  out.height = src.height;
+  const ctx = out.getContext('2d');
+  ctx.drawImage(src, 0, 0);
+
+  const { brightness, contrast, saturation } = state.adjustments;
+  const b = brightness / 100;
+  const c = (contrast + 100) / 100;
+  const s = (saturation + 100) / 100;
+
+  ctx.filter = `brightness(${1 + b}) contrast(${c}) saturate(${s})`;
+  ctx.drawImage(src, 0, 0);
+  ctx.filter = 'none';
+
+  return out;
+}
+
+// ══════════════════════════════════════════════
+//  SAVE
+// ══════════════════════════════════════════════
+function savePhoto() {
+  const adjusted = applyAdjustments() || state.resultCanvas;
+  if (!adjusted) return;
+
+  const dataUrl = adjusted.toDataURL('image/jpeg', 0.92);
+  const timestamp = new Date().toISOString();
+
+  state.gallery.unshift({ dataUrl, timestamp, id: Date.now() });
+  localStorage.setItem('phototake_gallery', JSON.stringify(state.gallery));
+  updateGalleryCount();
+  renderGallery();
+
+  // Download
+  const a = document.createElement('a');
+  a.download = `phototake_${Date.now()}.jpg`;
+  a.href = dataUrl;
+  a.click();
+
+  showToast('📸 Foto guardada en galería y descargada');
+  switchTab('gallery');
+}
+
+// ══════════════════════════════════════════════
+//  GALLERY
+// ══════════════════════════════════════════════
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  if (!state.gallery.length) {
+    grid.innerHTML = `<div class="gallery-empty"><div class="empty-state"><div class="icon">🖼️</div>Tu galería está vacía.<br>Captura tu primera foto revelada.</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = state.gallery.map(item => `
+    <div class="gallery-item" data-id="${item.id}">
+      <img src="${item.dataUrl}" alt="Foto digitalizada" loading="lazy">
+      <div class="gallery-item-date">${new Date(item.timestamp).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' })}</div>
+      <div class="gallery-item-actions">
+        <button class="gallery-action-btn" onclick="downloadPhoto('${item.id}')" title="Descargar">⬇</button>
+        <button class="gallery-action-btn" onclick="deletePhoto('${item.id}')" title="Eliminar">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function downloadPhoto(id) {
+  const item = state.gallery.find(i => String(i.id) === String(id));
+  if (!item) return;
+  const a = document.createElement('a');
+  a.download = `phototake_${id}.jpg`;
+  a.href = item.dataUrl;
+  a.click();
+}
+
+function deletePhoto(id) {
+  state.gallery = state.gallery.filter(i => String(i.id) !== String(id));
+  localStorage.setItem('phototake_gallery', JSON.stringify(state.gallery));
+  updateGalleryCount();
+  renderGallery();
+  showToast('Foto eliminada');
+}
+
+function updateGalleryCount() {
+  document.getElementById('gallery-count').textContent = state.gallery.length;
+}
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function switchTab(tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === tabId + '-panel'));
+
+  if (tabId === 'camera') {
+    if (!state.stream) startCamera();
+    else startDetectionLoop();
+  } else {
+    stopDetectionLoop();
+  }
+}
+
+// ══════════════════════════════════════════════
+//  TORCH
+// ══════════════════════════════════════════════
+async function toggleTorch() {
+  if (!state.stream) return;
+  const track = state.stream.getVideoTracks()[0];
+  if (!track || !track.getCapabilities().torch) {
+    showToast('Linterna no disponible en este dispositivo');
+    return;
+  }
+  state.torch = !state.torch;
+  await track.applyConstraints({ advanced: [{ torch: state.torch }] });
+  document.getElementById('btn-torch').textContent = state.torch ? '💡' : '🔦';
+}
+
+// ══════════════════════════════════════════════
+//  LOADING / TOAST
+// ══════════════════════════════════════════════
+function showLoading(msg) {
+  document.getElementById('loading-text').textContent = msg || 'Procesando…';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════════
+//  EVENT LISTENERS
+// ══════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+document.getElementById('btn-capture').addEventListener('click', capture);
+
+document.getElementById('btn-flip').addEventListener('click', () => {
+  state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+  startCamera();
+});
+
+document.getElementById('btn-torch').addEventListener('click', toggleTorch);
+
+document.getElementById('btn-save').addEventListener('click', savePhoto);
+
+document.getElementById('btn-retake').addEventListener('click', () => {
+  switchTab('camera');
+});
+
+document.getElementById('btn-reprocess').addEventListener('click', () => {
+  if (!state.capturedDataUrl) return;
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.width; c.height = img.height;
+    c.getContext('2d').drawImage(img, 0, 0);
+    processCapture(c, null);
+  };
+  img.src = state.capturedDataUrl;
+});
+
+// Sliders
+['brightness', 'contrast', 'saturation'].forEach(key => {
+  const sl = document.getElementById('sl-' + key);
+  const val = document.getElementById('val-' + key);
+  sl.addEventListener('input', () => {
+    state.adjustments[key] = parseInt(sl.value);
+    val.textContent = sl.value;
+  });
+});
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+updateGalleryCount();
+renderGallery();
+
+// Warn if OpenCV doesn't load in 10s
+setTimeout(() => {
+  if (!state.cvReady) {
+    document.getElementById('cv-status').textContent = 'Error OpenCV';
+    document.getElementById('cv-status').className = 'status-badge';
+    showToast('No se pudo cargar OpenCV.js — verifica tu conexión');
+  }
+}, 10000);
+</script>
+</body>
+</html>
