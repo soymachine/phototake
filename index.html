@@ -25,7 +25,8 @@
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100dvh;
+      height: 100dvh;
+      max-height: 100dvh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -106,7 +107,7 @@
     .panel.active { display: flex; }
 
     /* ── Camera ── */
-    #camera-panel { position: relative; }
+    #camera-panel { position: relative; overflow: hidden; }
 
     .camera-viewport {
       flex: 1;
@@ -433,7 +434,7 @@
 <header>
   <div class="logo">
     <div class="logo-icon">📷</div>
-    PhotoTake
+    PhotoTake <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:2px">v1.2</span>
   </div>
   <div class="status-badge loading" id="cv-status">Cargando OpenCV…</div>
 </header>
