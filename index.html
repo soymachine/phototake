@@ -470,7 +470,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.3</span>
+    <span class="ver">v2.4</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -925,11 +925,10 @@ function setupManual(srcCanvas, autoCorners) {
   const stage = el('manual-stage');
   const canvas = el('manual-canvas');
 
-  // Show section first so getBoundingClientRect returns real dimensions
   sec.style.display = 'block';
+  void sec.offsetWidth; // force reflow so getBoundingClientRect is accurate
   stage.querySelectorAll('.c-dot').forEach(d => d.remove());
 
-  // Limit display size: fit width AND cap height at 260px to stay on screen
   const containerW = stage.parentElement.getBoundingClientRect().width || (window.innerWidth - 32);
   const MAX_H = 400;
   const scByW = Math.min(containerW, srcCanvas.width) / srcCanvas.width;
@@ -944,8 +943,15 @@ function setupManual(srcCanvas, autoCorners) {
 
   canvas.width = srcCanvas.width;
   canvas.height = srcCanvas.height;
-  canvas.style.width = dW + 'px';
+  // Override .img-block canvas CSS (max-width:100%; max-height:320px) so the
+  // displayed size exactly matches dW×dH and manScale is correct.
+  canvas.style.maxWidth  = 'none';
+  canvas.style.maxHeight = 'none';
+  canvas.style.width  = dW + 'px';
   canvas.style.height = dH + 'px';
+  // Pin stage dimensions so absolute-positioned dots are bounded to dW×dH.
+  stage.style.width  = dW + 'px';
+  stage.style.height = dH + 'px';
   canvas.getContext('2d').drawImage(srcCanvas, 0, 0);
 
   const R = 13;
