@@ -425,7 +425,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.3</span>
+    <span class="ver">v1.4</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -527,6 +527,25 @@
 
 <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onCvReady()"></script>
 <script>
+// ─────────────────────────────────────────────
+//  HELPERS  (must be first — used throughout)
+// ─────────────────────────────────────────────
+const el = id => document.getElementById(id);
+const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const on  = (t, ev, fn, opt) => ev.split(' ').forEach(e => t.addEventListener(e, fn, opt));
+const off = (t, ev, fn)      => ev.split(' ').forEach(e => t.removeEventListener(e, fn));
+const setDot    = cls => el('cam-dot').className = 'cam-dot ' + cls;
+const setStatus = (txt, cls) => { const s = el('cv-status'); s.textContent = txt; s.className = 'pill ' + cls; };
+
+let toastTmr;
+function toast(msg) {
+  const t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTmr); toastTmr = setTimeout(() => t.classList.remove('show'), 2800);
+}
+function showLoader(msg) { el('loader-txt').textContent = msg; el('loader').classList.add('on'); }
+function hideLoader()    { el('loader').classList.remove('on'); }
+
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
@@ -1008,24 +1027,6 @@ async function toggleTorch() {
 
 // ─────────────────────────────────────────────
 //  HELPERS
-// ─────────────────────────────────────────────
-const el = id => document.getElementById(id);
-const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-const on  = (t, ev, fn, opt) => ev.split(' ').forEach(e => t.addEventListener(e, fn, opt));
-const off = (t, ev, fn)      => ev.split(' ').forEach(e => t.removeEventListener(e, fn));
-const setDot = cls => el('cam-dot').className = 'cam-dot ' + cls;
-const setStatus = (txt, cls) => { const s = el('cv-status'); s.textContent = txt; s.className = 'pill ' + cls; };
-
-let toastTmr;
-function toast(msg) {
-  const t = el('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTmr); toastTmr = setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-function showLoader(msg) { el('loader-txt').textContent = msg; el('loader').classList.add('on'); }
-function hideLoader()    { el('loader').classList.remove('on'); }
-
 // ─────────────────────────────────────────────
 //  WIRE UP EVENTS
 // ─────────────────────────────────────────────
