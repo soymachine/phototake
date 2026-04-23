@@ -267,6 +267,20 @@
     }
     .c-dot:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.2); }
 
+    /* ── Loupe ── */
+    #loupe {
+      position: fixed;
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      overflow: hidden;
+      pointer-events: none;
+      display: none;
+      z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,.7);
+    }
+    #loupe canvas { display: block; }
+
     .manual-note {
       padding: 10px 20px 14px;
       font-size: 12px;
@@ -456,7 +470,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.7</span>
+    <span class="ver">v1.8</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -560,6 +574,7 @@
 
 <div id="toast"></div>
 <div id="loader"><div class="spin"></div><div class="loader-txt" id="loader-txt">Procesando…</div></div>
+<div id="loupe"><canvas id="loupe-canvas"></canvas></div>
 
 <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onCvReady()"></script>
 <script>
@@ -909,10 +924,17 @@ function setupManual(srcCanvas, autoCorners) {
   const stage = el('manual-stage');
   const canvas = el('manual-canvas');
 
+  // Show section first so getBoundingClientRect returns real dimensions
+  sec.style.display = 'block';
   stage.querySelectorAll('.c-dot').forEach(d => d.remove());
 
-  const maxW = Math.min(srcCanvas.width, (stage.parentElement?.clientWidth || 400));
-  const sc = maxW / srcCanvas.width;
+  // Limit display size: fit width AND cap height at 260px to stay on screen
+  const containerW = stage.parentElement.getBoundingClientRect().width || (window.innerWidth - 32);
+  const MAX_H = 260;
+  const scByW = Math.min(containerW, srcCanvas.width) / srcCanvas.width;
+  const scByH = MAX_H / srcCanvas.height;
+  const sc = Math.min(scByW, scByH);
+
   const dW = Math.round(srcCanvas.width * sc);
   const dH = Math.round(srcCanvas.height * sc);
 
@@ -922,7 +944,7 @@ function setupManual(srcCanvas, autoCorners) {
   canvas.style.height = dH + 'px';
   canvas.getContext('2d').drawImage(srcCanvas, 0, 0);
 
-  const R = 13; // handle radius — keeps dots fully inside canvas
+  const R = 13;
   const cx = (x) => clamp(x, R, dW - R);
   const cy = (y) => clamp(y, R, dH - R);
   const pad = 0.12;
@@ -948,7 +970,6 @@ function setupManual(srcCanvas, autoCorners) {
   });
 
   updatePoly();
-  sec.style.display = 'block';
 }
 
 function attachDrag(el_, idx, maxW, maxH, R = 13) {
@@ -971,13 +992,59 @@ function attachDrag(el_, idx, maxW, maxH, R = 13) {
     el_.style.left = manPts[idx].x + 'px';
     el_.style.top  = manPts[idx].y + 'px';
     updatePoly();
+    showLoupe(t.clientX, t.clientY, idx);
   };
   const end = () => {
     off(document, 'mousemove touchmove', move);
     off(document, 'mouseup touchend', end);
+    hideLoupe();
   };
   on(el_, 'mousedown touchstart', start, { passive: false });
 }
+
+function showLoupe(screenX, screenY, idx) {
+  const loupe = el('loupe');
+  const lc = el('loupe-canvas');
+  const src = el('manual-canvas');
+  const D = 120, ZOOM = 4, CROP = D / ZOOM; // 30 source-px visible
+
+  const dW = parseFloat(src.style.width);
+  const dH = parseFloat(src.style.height);
+  const scX = src.width / dW;
+  const scY = src.height / dH;
+  const cx = manPts[idx].x * scX;
+  const cy = manPts[idx].y * scY;
+
+  lc.width = D; lc.height = D;
+  const ctx = lc.getContext('2d');
+
+  // Circular clip
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(D / 2, D / 2, D / 2, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, cx - CROP / 2, cy - CROP / 2, CROP, CROP, 0, 0, D, D);
+  ctx.restore();
+
+  // Crosshair
+  ctx.strokeStyle = 'rgba(245,197,24,.85)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(D / 2, 4); ctx.lineTo(D / 2, D - 4);
+  ctx.moveTo(4, D / 2); ctx.lineTo(D - 4, D / 2);
+  ctx.stroke();
+
+  // Position above finger, keep inside viewport
+  const top = Math.max(8, screenY - D - 24);
+  loupe.style.left = clamp(screenX - D / 2, 8, window.innerWidth - D - 8) + 'px';
+  loupe.style.top  = top + 'px';
+  loupe.style.display = 'block';
+}
+
+function hideLoupe() { el('loupe').style.display = 'none'; }
 
 function updatePoly() {
   el('manual-poly').setAttribute('points', manPts.map(p => `${p.x},${p.y}`).join(' '));
@@ -986,8 +1053,11 @@ function updatePoly() {
 function applyManual() {
   if (!S.srcCanvas) return;
   const canvas = el('manual-canvas');
-  const scX = S.srcCanvas.width  / parseFloat(canvas.style.width);
-  const scY = S.srcCanvas.height / parseFloat(canvas.style.height);
+  // Use actual rendered size (getBoundingClientRect) — avoids mismatch
+  // when CSS constrains the canvas differently from style.width
+  const rect = canvas.getBoundingClientRect();
+  const scX = canvas.width  / rect.width;
+  const scY = canvas.height / rect.height;
   const imgCorners = manPts.map(p => ({ x: p.x * scX, y: p.y * scY }));
 
   showLoader('Aplicando recorte manual…');
