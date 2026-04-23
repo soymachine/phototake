@@ -243,6 +243,7 @@
       line-height: 0;
       touch-action: none;
       user-select: none;
+      overflow: visible;
     }
 
     #manual-canvas { max-width: 100%; display: block; }
@@ -455,7 +456,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.6</span>
+    <span class="ver">v1.7</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -528,7 +529,7 @@
           Ajuste manual
           <button class="btn-sm" id="btn-apply-man">Aplicar recorte</button>
         </div>
-        <div class="img-block" style="display:block;text-align:center;overflow:hidden">
+        <div class="img-block" style="display:block;text-align:center;overflow:visible;padding:14px 0">
           <div id="manual-stage">
             <canvas id="manual-canvas"></canvas>
             <svg id="manual-svg" xmlns="http://www.w3.org/2000/svg">
@@ -921,15 +922,19 @@ function setupManual(srcCanvas, autoCorners) {
   canvas.style.height = dH + 'px';
   canvas.getContext('2d').drawImage(srcCanvas, 0, 0);
 
-  const pad = 0.1;
+  const R = 13; // handle radius — keeps dots fully inside canvas
+  const cx = (x) => clamp(x, R, dW - R);
+  const cy = (y) => clamp(y, R, dH - R);
+  const pad = 0.12;
+
   if (autoCorners) {
-    manPts = autoCorners.map(p => ({ x: p.x * sc, y: p.y * sc }));
+    manPts = autoCorners.map(p => ({ x: cx(p.x * sc), y: cy(p.y * sc) }));
   } else {
     manPts = [
-      { x: dW * pad,       y: dH * pad },
-      { x: dW * (1 - pad), y: dH * pad },
-      { x: dW * (1 - pad), y: dH * (1 - pad) },
-      { x: dW * pad,       y: dH * (1 - pad) },
+      { x: cx(dW * pad),       y: cy(dH * pad) },
+      { x: cx(dW * (1 - pad)), y: cy(dH * pad) },
+      { x: cx(dW * (1 - pad)), y: cy(dH * (1 - pad)) },
+      { x: cx(dW * pad),       y: cy(dH * (1 - pad)) },
     ];
   }
 
@@ -939,14 +944,14 @@ function setupManual(srcCanvas, autoCorners) {
     dot.style.left = pt.x + 'px';
     dot.style.top = pt.y + 'px';
     stage.appendChild(dot);
-    attachDrag(dot, i, dW, dH);
+    attachDrag(dot, i, dW, dH, R);
   });
 
   updatePoly();
   sec.style.display = 'block';
 }
 
-function attachDrag(el_, idx, maxW, maxH) {
+function attachDrag(el_, idx, maxW, maxH, R = 13) {
   let sx, sy, ox, oy;
   const start = e => {
     e.preventDefault();
@@ -960,8 +965,8 @@ function attachDrag(el_, idx, maxW, maxH) {
     e.preventDefault();
     const t = e.touches?.[0] ?? e;
     manPts[idx] = {
-      x: clamp(ox + t.clientX - sx, 0, maxW),
-      y: clamp(oy + t.clientY - sy, 0, maxH),
+      x: clamp(ox + t.clientX - sx, R, maxW - R),
+      y: clamp(oy + t.clientY - sy, R, maxH - R),
     };
     el_.style.left = manPts[idx].x + 'px';
     el_.style.top  = manPts[idx].y + 'px';
