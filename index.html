@@ -274,6 +274,36 @@
     }
 
     /* ── Sliders ── */
+    /* ── Negative toggles ── */
+    .neg-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px 4px;
+    }
+
+    .neg-btn {
+      flex: 1;
+      height: 38px;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--sub);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .neg-btn.active {
+      background: var(--text);
+      color: #000;
+      border-color: var(--text);
+    }
+
     .sliders { padding: 4px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
 
     .sl-row { display: flex; align-items: center; gap: 12px; }
@@ -425,7 +455,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.5</span>
+    <span class="ver">v1.6</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -465,6 +495,11 @@
 
       <div class="img-block" id="result-wrap">
         <div class="empty-msg">Captura una foto para empezar</div>
+      </div>
+
+      <div class="neg-row">
+        <button class="neg-btn" id="tog-bw">Negativo B&amp;N</button>
+        <button class="neg-btn" id="tog-color">Negativo Color</button>
       </div>
 
       <div class="sliders" id="adj-panel">
@@ -557,6 +592,7 @@ const S = {
   srcCanvas: null,       // raw capture
   baseCanvas: null,      // perspective-corrected (no adjustments)
   adj: { b: 0, c: 0, s: 0 },
+  negMode: null,   // null | 'bw' | 'color'
   gallery: JSON.parse(localStorage.getItem('pt_gal') || '[]'),
 };
 
@@ -805,17 +841,27 @@ function processImage(corners) {
 // ─────────────────────────────────────────────
 function resetAdj() {
   S.adj = { b: 0, c: 0, s: 0 };
+  S.negMode = null;
   [['sl-b','vl-b'], ['sl-c','vl-c'], ['sl-s','vl-s']].forEach(([sl, vl]) => {
     el(sl).value = 0; el(vl).textContent = 0;
   });
+  el('tog-bw').classList.remove('active');
+  el('tog-color').classList.remove('active');
+}
+
+function buildFilter() {
+  const { b, c, s } = S.adj;
+  let f = `brightness(${1 + b / 100}) contrast(${(c + 100) / 100}) saturate(${(s + 100) / 100})`;
+  if (S.negMode === 'bw')    f += ' invert(1) grayscale(1)';
+  if (S.negMode === 'color') f += ' invert(1)';
+  return f;
 }
 
 function applyAdj(srcCanvas) {
   if (!srcCanvas) return null;
-  const { b, c, s } = S.adj;
   const out = makeCanvas(srcCanvas.width, srcCanvas.height);
   const ctx = out.getContext('2d');
-  ctx.filter = `brightness(${1 + b / 100}) contrast(${(c + 100) / 100}) saturate(${(s + 100) / 100})`;
+  ctx.filter = buildFilter();
   ctx.drawImage(srcCanvas, 0, 0);
   ctx.filter = 'none';
   return out;
@@ -839,8 +885,7 @@ function renderResult() {
     wrap.appendChild(img);
   }
 
-  const { b, c, s } = S.adj;
-  img.style.filter = `brightness(${1 + b / 100}) contrast(${(c + 100) / 100}) saturate(${(s + 100) / 100})`;
+  img.style.filter = buildFilter();
 }
 
 // Slider listeners
@@ -1049,6 +1094,15 @@ el('btn-torch').addEventListener('click', toggleTorch);
 el('btn-save').addEventListener('click', savePhoto);
 el('btn-retake').addEventListener('click', () => switchTab('cam'));
 el('btn-apply-man').addEventListener('click', applyManual);
+
+['bw', 'color'].forEach(mode => {
+  el('tog-' + mode).addEventListener('click', () => {
+    S.negMode = S.negMode === mode ? null : mode;
+    el('tog-bw').classList.toggle('active', S.negMode === 'bw');
+    el('tog-color').classList.toggle('active', S.negMode === 'color');
+    renderResult();
+  });
+});
 
 // ─────────────────────────────────────────────
 //  INIT
