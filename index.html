@@ -992,7 +992,7 @@ function attachDrag(el_, idx, maxW, maxH, R = 13) {
       el_.style.left = manPts[idx].x + 'px';
       el_.style.top  = manPts[idx].y + 'px';
       updatePoly();
-      showLoupe(e.clientX, e.clientY, idx);
+      showLoupe(idx);
     };
 
     const end = () => {
@@ -1008,7 +1008,7 @@ function attachDrag(el_, idx, maxW, maxH, R = 13) {
   }, { passive: false });
 }
 
-function showLoupe(screenX, screenY, idx) {
+function showLoupe(idx) {
   const loupe = el('loupe');
   const lc = el('loupe-canvas');
   const src = el('manual-canvas');
@@ -1062,9 +1062,13 @@ function showLoupe(screenX, screenY, idx) {
   ctx.moveTo(2, hairY); ctx.lineTo(D - 2, hairY);
   ctx.stroke();
 
-  // Position above finger, clamped to viewport
-  loupe.style.left = clamp(screenX - D / 2, 8, window.innerWidth - D - 8) + 'px';
-  loupe.style.top  = Math.max(8, screenY - D - 24) + 'px';
+  // Position loupe above the dot itself (stage-relative → viewport coords)
+  // so the loupe content and its on-screen position always correspond.
+  const stageRect = el('manual-stage').getBoundingClientRect();
+  const dotVX = stageRect.left + manPts[idx].x;
+  const dotVY = stageRect.top  + manPts[idx].y;
+  loupe.style.left = clamp(dotVX - D / 2, 8, window.innerWidth - D - 8) + 'px';
+  loupe.style.top  = Math.max(8, dotVY - D - 24) + 'px';
   loupe.style.display = 'block';
 }
 
