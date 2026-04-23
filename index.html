@@ -470,7 +470,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.0</span>
+    <span class="ver">v2.1</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -1008,44 +1008,57 @@ function showLoupe(screenX, screenY, idx) {
   const src = el('manual-canvas');
   const D = 120, ZOOM = 2;
 
-  const dW = parseFloat(src.style.width);
-  const dH = parseFloat(src.style.height);
+  // Use getBoundingClientRect for the actual rendered display size
+  const rect = src.getBoundingClientRect();
+  const dW = rect.width || parseFloat(src.style.width);
+  const dH = rect.height || parseFloat(src.style.height);
+  if (!dW || !dH) return;
+
+  // Scale: source-px per display-px
   const scX = src.width / dW;
   const scY = src.height / dH;
-  const cx = manPts[idx].x * scX;
-  const cy = manPts[idx].y * scY;
 
-  // CROP in source pixels = (loupe_px / zoom) * source_scale
-  // → shows D/ZOOM display-pixels around the handle at ZOOM× magnification
+  // Handle center in source-px coordinates
+  const px = manPts[idx].x * scX;
+  const py = manPts[idx].y * scY;
+
+  // Crop region: D/ZOOM display-px → scaled to source-px
   const cropW = (D / ZOOM) * scX;
   const cropH = (D / ZOOM) * scY;
+
+  // Clamp so the crop never goes outside canvas bounds
+  const sx = clamp(px - cropW / 2, 0, src.width  - cropW);
+  const sy = clamp(py - cropH / 2, 0, src.height - cropH);
+
+  // Where the actual handle falls inside the loupe (for the crosshair)
+  const hairX = ((px - sx) / cropW) * D;
+  const hairY = ((py - sy) / cropH) * D;
 
   lc.width = D; lc.height = D;
   const ctx = lc.getContext('2d');
 
-  // Circular clip
+  // Draw circular crop
   ctx.save();
   ctx.beginPath();
   ctx.arc(D / 2, D / 2, D / 2, 0, Math.PI * 2);
   ctx.clip();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(src, cx - cropW / 2, cy - cropH / 2, cropW, cropH, 0, 0, D, D);
+  ctx.drawImage(src, sx, sy, cropW, cropH, 0, 0, D, D);
   ctx.restore();
 
-  // Crosshair
-  ctx.strokeStyle = 'rgba(245,197,24,.85)';
+  // Crosshair at the real handle position (not always center when clamped)
+  ctx.strokeStyle = 'rgba(245,197,24,.9)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([4, 3]);
   ctx.beginPath();
-  ctx.moveTo(D / 2, 4); ctx.lineTo(D / 2, D - 4);
-  ctx.moveTo(4, D / 2); ctx.lineTo(D - 4, D / 2);
+  ctx.moveTo(hairX, 2); ctx.lineTo(hairX, D - 2);
+  ctx.moveTo(2, hairY); ctx.lineTo(D - 2, hairY);
   ctx.stroke();
 
-  // Position above finger, keep inside viewport
-  const top = Math.max(8, screenY - D - 24);
+  // Position above finger, clamped to viewport
   loupe.style.left = clamp(screenX - D / 2, 8, window.innerWidth - D - 8) + 'px';
-  loupe.style.top  = top + 'px';
+  loupe.style.top  = Math.max(8, screenY - D - 24) + 'px';
   loupe.style.display = 'block';
 }
 
