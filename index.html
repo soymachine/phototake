@@ -470,7 +470,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.8</span>
+    <span class="ver">v1.9</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -930,7 +930,7 @@ function setupManual(srcCanvas, autoCorners) {
 
   // Limit display size: fit width AND cap height at 260px to stay on screen
   const containerW = stage.parentElement.getBoundingClientRect().width || (window.innerWidth - 32);
-  const MAX_H = 260;
+  const MAX_H = 400;
   const scByW = Math.min(containerW, srcCanvas.width) / srcCanvas.width;
   const scByH = MAX_H / srcCanvas.height;
   const sc = Math.min(scByW, scByH);
@@ -1006,7 +1006,7 @@ function showLoupe(screenX, screenY, idx) {
   const loupe = el('loupe');
   const lc = el('loupe-canvas');
   const src = el('manual-canvas');
-  const D = 120, ZOOM = 4, CROP = D / ZOOM; // 30 source-px visible
+  const D = 120, ZOOM = 2, CROP = D / ZOOM; // 60 source-px visible
 
   const dW = parseFloat(src.style.width);
   const dH = parseFloat(src.style.height);
