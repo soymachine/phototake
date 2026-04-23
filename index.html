@@ -470,7 +470,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.1</span>
+    <span class="ver">v2.2</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -918,6 +918,7 @@ function renderResult() {
 //  MANUAL CROP
 // ─────────────────────────────────────────────
 let manPts = [];
+let manScale = { x: 1, y: 1 };
 
 function setupManual(srcCanvas, autoCorners) {
   const sec = el('manual-sec');
@@ -937,6 +938,9 @@ function setupManual(srcCanvas, autoCorners) {
 
   const dW = Math.round(srcCanvas.width * sc);
   const dH = Math.round(srcCanvas.height * sc);
+
+  // Fix scale at setup time so showLoupe/applyManual are resize-immune
+  manScale = { x: srcCanvas.width / dW, y: srcCanvas.height / dH };
 
   canvas.width = srcCanvas.width;
   canvas.height = srcCanvas.height;
@@ -973,33 +977,35 @@ function setupManual(srcCanvas, autoCorners) {
 }
 
 function attachDrag(el_, idx, maxW, maxH, R = 13) {
-  let sx, sy, ox, oy;
-  const start = e => {
+  el_.addEventListener('pointerdown', e => {
     e.preventDefault();
-    const t = e.touches?.[0] ?? e;
-    sx = t.clientX; sy = t.clientY;
-    ox = manPts[idx].x; oy = manPts[idx].y;
-    on(document, 'mousemove touchmove', move, { passive: false });
-    on(document, 'mouseup touchend', end);
-  };
-  const move = e => {
-    e.preventDefault();
-    const t = e.touches?.[0] ?? e;
-    manPts[idx] = {
-      x: clamp(ox + t.clientX - sx, R, maxW - R),
-      y: clamp(oy + t.clientY - sy, R, maxH - R),
+    el_.setPointerCapture(e.pointerId);
+    const sx = e.clientX, sy = e.clientY;
+    const ox = manPts[idx].x, oy = manPts[idx].y;
+
+    const move = e => {
+      e.preventDefault();
+      manPts[idx] = {
+        x: clamp(ox + e.clientX - sx, R, maxW - R),
+        y: clamp(oy + e.clientY - sy, R, maxH - R),
+      };
+      el_.style.left = manPts[idx].x + 'px';
+      el_.style.top  = manPts[idx].y + 'px';
+      updatePoly();
+      showLoupe(e.clientX, e.clientY, idx);
     };
-    el_.style.left = manPts[idx].x + 'px';
-    el_.style.top  = manPts[idx].y + 'px';
-    updatePoly();
-    showLoupe(t.clientX, t.clientY, idx);
-  };
-  const end = () => {
-    off(document, 'mousemove touchmove', move);
-    off(document, 'mouseup touchend', end);
-    hideLoupe();
-  };
-  on(el_, 'mousedown touchstart', start, { passive: false });
+
+    const end = () => {
+      el_.removeEventListener('pointermove',   move);
+      el_.removeEventListener('pointerup',     end);
+      el_.removeEventListener('pointercancel', end);
+      hideLoupe();
+    };
+
+    el_.addEventListener('pointermove',   move);
+    el_.addEventListener('pointerup',     end);
+    el_.addEventListener('pointercancel', end);
+  }, { passive: false });
 }
 
 function showLoupe(screenX, screenY, idx) {
@@ -1007,16 +1013,11 @@ function showLoupe(screenX, screenY, idx) {
   const lc = el('loupe-canvas');
   const src = el('manual-canvas');
   const D = 120, ZOOM = 2;
+  const dpr = window.devicePixelRatio || 1;
 
-  // Use getBoundingClientRect for the actual rendered display size
-  const rect = src.getBoundingClientRect();
-  const dW = rect.width || parseFloat(src.style.width);
-  const dH = rect.height || parseFloat(src.style.height);
-  if (!dW || !dH) return;
-
-  // Scale: source-px per display-px
-  const scX = src.width / dW;
-  const scY = src.height / dH;
+  // Use scale fixed at setup time — immune to window resize
+  const scX = manScale.x;
+  const scY = manScale.y;
 
   // Handle center in source-px coordinates
   const px = manPts[idx].x * scX;
@@ -1034,8 +1035,13 @@ function showLoupe(screenX, screenY, idx) {
   const hairX = ((px - sx) / cropW) * D;
   const hairY = ((py - sy) / cropH) * D;
 
-  lc.width = D; lc.height = D;
+  // Scale canvas buffer to physical pixels for crisp rendering on HiDPI
+  lc.width  = D * dpr;
+  lc.height = D * dpr;
+  lc.style.width  = D + 'px';
+  lc.style.height = D + 'px';
   const ctx = lc.getContext('2d');
+  ctx.scale(dpr, dpr);
 
   // Draw circular crop
   ctx.save();
@@ -1070,13 +1076,7 @@ function updatePoly() {
 
 function applyManual() {
   if (!S.srcCanvas) return;
-  const canvas = el('manual-canvas');
-  // Use actual rendered size (getBoundingClientRect) — avoids mismatch
-  // when CSS constrains the canvas differently from style.width
-  const rect = canvas.getBoundingClientRect();
-  const scX = canvas.width  / rect.width;
-  const scY = canvas.height / rect.height;
-  const imgCorners = manPts.map(p => ({ x: p.x * scX, y: p.y * scY }));
+  const imgCorners = manPts.map(p => ({ x: p.x * manScale.x, y: p.y * manScale.y }));
 
   showLoader('Aplicando recorte manual…');
   setTimeout(() => {
