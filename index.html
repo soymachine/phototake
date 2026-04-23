@@ -4,257 +4,238 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#0a0a0a">
+  <meta name="theme-color" content="#080808">
   <title>PhotoTake</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0a0a;
-      --surface: #161616;
-      --border: #2a2a2a;
-      --accent: #f5c518;
-      --accent2: #e8a800;
-      --text: #f0f0f0;
-      --text-muted: #888;
-      --success: #4caf50;
-      --radius: 16px;
+      --bg:      #080808;
+      --bg2:     #111;
+      --line:    #222;
+      --muted:   #555;
+      --sub:     #999;
+      --text:    #f0f0f0;
+      --accent:  #f0f0f0;
+      --gold:    #f5c518;
+      --gold2:   #d4a800;
+      --ok:      #3ecf8e;
+      --r: 12px;
+    }
+
+    html, body {
+      height: 100%; max-height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      height: 100dvh;
-      max-height: 100dvh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
-    header {
+    /* ── Header ── */
+    .hdr {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 20px 12px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
       flex-shrink: 0;
     }
 
-    .logo {
+    .hdr-logo {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .hdr-logo h1 {
+      font-size: 16px;
       font-weight: 700;
-      font-size: 18px;
       letter-spacing: -0.3px;
+      color: var(--text);
     }
 
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background: var(--accent);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 17px;
-    }
-
-    .status-badge {
+    .hdr-logo .ver {
       font-size: 11px;
-      padding: 4px 10px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .pill {
+      font-size: 11px;
+      padding: 3px 10px;
       border-radius: 20px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: none;
     }
-    .status-badge.ready { color: var(--success); border-color: var(--success); }
-    .status-badge.loading { color: var(--accent); border-color: var(--accent); }
+    .pill.ready  { color: var(--ok);   border-color: var(--ok); }
+    .pill.loading{ color: var(--gold); border-color: var(--gold); animation: blink 1.4s infinite; }
 
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.45} }
 
+    /* ── Tabs ── */
     .tabs {
       display: flex;
-      gap: 4px;
-      padding: 12px 16px 0;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--line);
       flex-shrink: 0;
     }
 
     .tab {
       flex: 1;
-      padding: 10px 8px;
+      padding: 11px 4px;
       background: none;
       border: none;
       border-bottom: 2px solid transparent;
-      color: var(--text-muted);
-      font-size: 13px;
+      color: var(--muted);
+      font-size: 12px;
       font-weight: 600;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
       cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
+      transition: color .18s, border-color .18s;
     }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab.active { color: var(--text); border-bottom-color: var(--text); }
 
-    .panel { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+    /* ── Panels ── */
+    main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+    .panel { flex: 1; min-height: 0; display: none; flex-direction: column; overflow: hidden; }
     .panel.active { display: flex; }
 
     /* ── Camera ── */
-    #camera-panel { position: relative; overflow: hidden; }
+    #cam-panel { overflow: hidden; }
 
-    .camera-viewport {
+    .cam-vp {
       flex: 1;
+      min-height: 0;
       position: relative;
-      overflow: hidden;
       background: #000;
+      overflow: hidden;
     }
 
-    #video { width: 100%; height: 100%; object-fit: cover; }
+    #video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    #overlay-canvas {
-      position: absolute;
-      top: 0; left: 0;
+    #ov-canvas {
+      position: absolute; inset: 0;
       width: 100%; height: 100%;
       pointer-events: none;
     }
 
-    .camera-hint {
+    .cam-hint {
       position: absolute;
-      top: 16px;
-      left: 50%;
+      bottom: 16px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(8,8,8,.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.08);
       border-radius: 20px;
-      padding: 8px 16px;
+      padding: 7px 16px;
       font-size: 12px;
-      color: rgba(255,255,255,0.85);
+      color: rgba(240,240,240,.75);
       white-space: nowrap;
-      transition: opacity 0.3s;
+      pointer-events: none;
     }
 
-    .detection-indicator {
+    .cam-dot {
       position: absolute;
       top: 16px; right: 16px;
-      width: 12px; height: 12px;
+      width: 10px; height: 10px;
       border-radius: 50%;
-      background: var(--text-muted);
-      transition: background 0.3s;
+      background: var(--muted);
     }
-    .detection-indicator.detected { background: var(--success); box-shadow: 0 0 8px var(--success); }
-    .detection-indicator.scanning { background: var(--accent); animation: pulse 1s infinite; }
+    .cam-dot.found { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+    .cam-dot.scan  { background: var(--gold); animation: blink 1s infinite; }
 
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .camera-controls {
-      padding: 16px;
+    .cam-bar {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-shrink: 0;
+      gap: 12px;
+      padding: 16px 20px;
       background: var(--bg);
+      border-top: 1px solid var(--line);
     }
 
-    .btn-capture {
+    .ico-btn {
+      width: 44px; height: 44px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      color: var(--sub);
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .ico-btn:active { background: #1a1a1a; color: var(--text); }
+
+    .cap-btn {
       flex: 1;
-      height: 56px;
-      background: var(--accent);
+      height: 48px;
+      background: var(--gold);
       color: #000;
       border: none;
-      border-radius: var(--radius);
-      font-size: 15px;
+      border-radius: var(--r);
+      font-size: 14px;
       font-weight: 700;
+      letter-spacing: .3px;
       cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      transition: background .15s, transform .1s;
     }
-    .btn-capture:active { transform: scale(0.97); background: var(--accent2); }
-    .btn-capture:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    .btn-icon {
-      width: 48px; height: 48px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      color: var(--text);
-      font-size: 18px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s;
-      flex-shrink: 0;
-    }
-    .btn-icon:active { transform: scale(0.95); }
+    .cap-btn:active { background: var(--gold2); transform: scale(.98); }
+    .cap-btn:disabled { opacity: .35; cursor: not-allowed; }
 
     /* ── Process ── */
-    #process-panel { overflow-y: auto; }
+    #proc-panel { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-    .process-container {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+    .proc-body { display: flex; flex-direction: column; }
 
-    .preview-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-
-    .preview-card-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
+    .sec-label {
+      padding: 16px 20px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
-    .preview-card-title {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .img-block {
+      background: #000;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 160px;
     }
 
-    .preview-canvas-wrap {
-      background: #111;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 140px;
+    .img-block canvas, .img-block img {
+      max-width: 100%;
+      max-height: 320px;
+      display: block;
+      object-fit: contain;
     }
 
-    canvas { max-width: 100%; display: block; }
-
-    .empty-state {
+    .empty-msg {
       padding: 40px 24px;
       text-align: center;
-      color: var(--text-muted);
       font-size: 13px;
-      line-height: 1.6;
+      color: var(--muted);
+      line-height: 1.7;
     }
-    .empty-state .icon { font-size: 36px; margin-bottom: 10px; }
+
+    .divider { height: 1px; background: var(--line); margin: 0 20px; }
+    .divider-full { height: 1px; background: var(--line); }
 
     /* ── Manual crop ── */
-    #manual-section {
-      display: none;
-    }
+    #manual-sec { display: none; }
 
     #manual-stage {
       position: relative;
@@ -267,768 +248,691 @@
     #manual-canvas { max-width: 100%; display: block; }
 
     #manual-svg {
-      position: absolute;
-      top: 0; left: 0;
+      position: absolute; inset: 0;
       width: 100%; height: 100%;
-      pointer-events: none;
-      overflow: visible;
+      pointer-events: none; overflow: visible;
     }
 
-    .corner-handle {
+    .c-dot {
       position: absolute;
-      width: 28px; height: 28px;
-      background: var(--accent);
-      border: 3px solid #000;
+      width: 26px; height: 26px;
+      background: var(--gold);
+      border: 2px solid #000;
       border-radius: 50%;
-      transform: translate(-50%, -50%);
+      transform: translate(-50%,-50%);
       cursor: grab;
       touch-action: none;
-      z-index: 10;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+      box-shadow: 0 2px 8px rgba(0,0,0,.6);
     }
-    .corner-handle:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.15); }
+    .c-dot:active { cursor: grabbing; transform: translate(-50%,-50%) scale(1.2); }
 
-    .manual-hint {
-      padding: 10px 16px;
+    .manual-note {
+      padding: 10px 20px 14px;
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--muted);
       text-align: center;
-      border-top: 1px solid var(--border);
     }
 
-    /* ── Adjustments ── */
-    .adjust-controls {
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    /* ── Sliders ── */
+    .sliders { padding: 4px 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    .sl-row { display: flex; align-items: center; gap: 12px; }
+    .sl-lbl { font-size: 12px; color: var(--sub); width: 68px; flex-shrink: 0; }
+
+    input[type=range] {
+      flex: 1;
+      height: 3px;
+      accent-color: var(--text);
+      cursor: pointer;
+      background: var(--line);
+      border-radius: 2px;
     }
 
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .sl-val { font-size: 12px; color: var(--sub); width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* ── Action row ── */
+    .act-row {
+      display: flex; gap: 10px;
+      padding: 16px 20px;
+      border-top: 1px solid var(--line);
     }
-
-    .slider-label { font-size: 12px; color: var(--text-muted); width: 70px; flex-shrink: 0; }
-    input[type=range] { flex: 1; height: 4px; accent-color: var(--accent); cursor: pointer; }
-    .slider-val { font-size: 12px; color: var(--text); width: 32px; text-align: right; }
-
-    .action-row { display: flex; gap: 10px; }
 
     .btn {
-      flex: 1;
-      height: 48px;
-      border: none;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
+      flex: 1; height: 46px;
+      border: none; border-radius: var(--r);
+      font-size: 14px; font-weight: 600;
       cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
+      transition: opacity .15s, transform .1s;
     }
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #000; }
-    .btn-primary:active { background: var(--accent2); }
-    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
-    .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .3; cursor: not-allowed; }
+    .btn-outline { background: none; color: var(--sub); border: 1px solid var(--line); }
+    .btn-solid   { background: var(--gold); color: #000; }
+    .btn-solid:active { background: var(--gold2); }
+    .btn-sm {
+      height: 30px; padding: 0 12px; flex: 0;
+      font-size: 12px; font-weight: 600;
+      background: var(--bg2); color: var(--sub);
+      border: 1px solid var(--line);
+      border-radius: 8px; cursor: pointer;
+      transition: color .15s;
+    }
+    .btn-sm:active { color: var(--text); }
 
     /* ── Gallery ── */
-    #gallery-panel { overflow-y: auto; }
+    #gal-panel { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
-    .gallery-grid {
+    .gal-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      padding: 16px;
+      gap: 1px;
+      background: var(--line);
+      margin-top: 1px;
     }
 
-    .gallery-item {
+    .gal-item {
       position: relative;
       aspect-ratio: 4/3;
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--surface);
+      background: var(--bg2);
       cursor: pointer;
-      border: 2px solid transparent;
-      transition: border-color 0.2s;
+      overflow: hidden;
     }
-    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .gal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    .gallery-item-date {
+    .gal-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(transparent 55%, rgba(0,0,0,.8));
+    }
+
+    .gal-date {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
-      padding: 8px;
-      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      bottom: 8px; left: 10px;
       font-size: 10px;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,.55);
+      letter-spacing: .3px;
     }
 
-    .gallery-item-actions {
+    .gal-acts {
       position: absolute;
       top: 6px; right: 6px;
       display: flex; gap: 4px;
       opacity: 0;
-      transition: opacity 0.2s;
+      transition: opacity .2s;
     }
-    .gallery-item:hover .gallery-item-actions { opacity: 1; }
+    .gal-item:hover .gal-acts { opacity: 1; }
 
-    .gallery-action-btn {
+    .gal-act-btn {
       width: 28px; height: 28px;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,.65);
       border: none; border-radius: 6px;
       color: #fff; font-size: 13px;
       cursor: pointer;
       display: flex; align-items: center; justify-content: center;
     }
 
-    .gallery-empty { grid-column: 1/-1; }
+    .gal-empty {
+      grid-column: 1/-1;
+      padding: 64px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
 
     /* ── Toast ── */
     #toast {
       position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(30,30,30,0.95);
-      border: 1px solid var(--border);
+      bottom: 88px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: rgba(20,20,20,.95);
+      border: 1px solid var(--line);
       backdrop-filter: blur(12px);
       border-radius: 20px;
-      padding: 10px 20px;
-      font-size: 13px;
-      color: var(--text);
+      padding: 9px 18px;
+      font-size: 12px; color: var(--text);
       opacity: 0;
-      transition: all 0.3s;
-      pointer-events: none;
-      z-index: 100;
+      transition: opacity .25s, transform .25s;
+      pointer-events: none; z-index: 100;
       white-space: nowrap;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    #loading-overlay {
+    /* ── Loader ── */
+    #loader {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.85);
-      display: none;
-      align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px;
+      background: rgba(0,0,0,.8);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
       z-index: 200;
     }
-    #loading-overlay.show { display: flex; }
+    #loader.on { display: flex; }
 
-    .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
+    .spin {
+      width: 36px; height: 36px;
+      border: 2px solid var(--line);
+      border-top-color: var(--gold);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin .7s linear infinite;
     }
-    .loading-text { font-size: 14px; color: var(--text-muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-txt { font-size: 13px; color: var(--sub); }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="logo">
-    <div class="logo-icon">📷</div>
-    PhotoTake <span style="font-size:11px;font-weight:400;color:var(--text-muted);margin-left:2px">v1.2</span>
+<!-- Header -->
+<header class="hdr">
+  <div class="hdr-logo">
+    <h1>PhotoTake</h1>
+    <span class="ver">v1.3</span>
   </div>
-  <div class="status-badge loading" id="cv-status">Cargando OpenCV…</div>
+  <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
 
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" data-tab="cam">Cámara</button>
+  <button class="tab" data-tab="proc">Procesar</button>
+  <button class="tab" data-tab="gal">Galería <span id="gal-n">0</span></button>
+</div>
+
 <main>
-  <div class="tabs">
-    <button class="tab active" data-tab="camera">📸 Cámara</button>
-    <button class="tab" data-tab="process">✂️ Procesar</button>
-    <button class="tab" data-tab="gallery">🖼️ Galería (<span id="gallery-count">0</span>)</button>
-  </div>
 
   <!-- ── CAMERA ── -->
-  <div class="panel active" id="camera-panel">
-    <div class="camera-viewport">
+  <div class="panel active" id="cam-panel">
+    <div class="cam-vp">
       <video id="video" autoplay playsinline muted></video>
-      <canvas id="overlay-canvas"></canvas>
-      <div class="camera-hint" id="camera-hint">Apunta la cámara a una foto revelada</div>
-      <div class="detection-indicator scanning" id="detection-indicator"></div>
+      <canvas id="ov-canvas"></canvas>
+      <div class="cam-hint" id="cam-hint">Apunta a una foto revelada</div>
+      <div class="cam-dot scan" id="cam-dot"></div>
     </div>
-    <div class="camera-controls">
-      <button class="btn-icon" id="btn-flip" title="Cambiar cámara">🔄</button>
-      <button class="btn-capture" id="btn-capture" disabled>📸 Capturar</button>
-      <button class="btn-icon" id="btn-torch" title="Linterna">🔦</button>
+    <div class="cam-bar">
+      <button class="ico-btn" id="btn-flip">↺</button>
+      <button class="cap-btn" id="btn-cap" disabled>Capturar</button>
+      <button class="ico-btn" id="btn-torch">⚡</button>
     </div>
   </div>
 
   <!-- ── PROCESS ── -->
-  <div class="panel" id="process-panel">
-    <div class="process-container">
+  <div class="panel" id="proc-panel">
+    <div class="proc-body">
 
-      <!-- Resultado auto -->
-      <div class="preview-card">
-        <div class="preview-card-header">
-          <span class="preview-card-title">Foto recortada</span>
-          <span id="detection-label" style="font-size:12px;color:var(--text-muted)">—</span>
+      <div class="sec-label">
+        Resultado
+        <span id="det-lbl" style="font-size:11px;font-weight:500;color:var(--muted)">—</span>
+      </div>
+
+      <div class="img-block" id="result-wrap">
+        <div class="empty-msg">Captura una foto para empezar</div>
+      </div>
+
+      <div class="sliders" id="adj-panel">
+        <div class="sl-row">
+          <span class="sl-lbl">Brillo</span>
+          <input type="range" id="sl-b" min="-100" max="100" value="0">
+          <span class="sl-val" id="vl-b">0</span>
         </div>
-        <div class="preview-canvas-wrap" id="result-wrap">
-          <div class="empty-state">
-            <div class="icon">✂️</div>
-            Captura una foto primero
-          </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Contraste</span>
+          <input type="range" id="sl-c" min="-100" max="100" value="0">
+          <span class="sl-val" id="vl-c">0</span>
         </div>
-        <div class="adjust-controls">
-          <div class="slider-row">
-            <span class="slider-label">Brillo</span>
-            <input type="range" id="sl-brightness" min="-100" max="100" value="0">
-            <span class="slider-val" id="val-brightness">0</span>
-          </div>
-          <div class="slider-row">
-            <span class="slider-label">Contraste</span>
-            <input type="range" id="sl-contrast" min="-100" max="100" value="0">
-            <span class="slider-val" id="val-contrast">0</span>
-          </div>
-          <div class="slider-row">
-            <span class="slider-label">Saturación</span>
-            <input type="range" id="sl-saturation" min="-100" max="100" value="0">
-            <span class="slider-val" id="val-saturation">0</span>
-          </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Saturación</span>
+          <input type="range" id="sl-s" min="-100" max="100" value="0">
+          <span class="sl-val" id="vl-s">0</span>
         </div>
       </div>
 
-      <!-- Ajuste manual de esquinas -->
-      <div class="preview-card" id="manual-section">
-        <div class="preview-card-header">
-          <span class="preview-card-title">Ajuste manual de esquinas</span>
-          <button class="btn" id="btn-apply-manual" style="flex:0;padding:0 14px;height:32px;font-size:12px;background:var(--accent);color:#000;border-radius:8px">✂️ Aplicar</button>
+      <div class="divider-full"></div>
+
+      <!-- Manual crop -->
+      <div id="manual-sec">
+        <div class="sec-label">
+          Ajuste manual
+          <button class="btn-sm" id="btn-apply-man">Aplicar recorte</button>
         </div>
-        <div class="preview-canvas-wrap" style="display:block;overflow:hidden;text-align:center">
+        <div class="img-block" style="display:block;text-align:center;overflow:hidden">
           <div id="manual-stage">
             <canvas id="manual-canvas"></canvas>
             <svg id="manual-svg" xmlns="http://www.w3.org/2000/svg">
-              <polygon id="manual-poly" fill="rgba(245,197,24,0.12)" stroke="#f5c518" stroke-width="2" points=""/>
+              <polygon id="manual-poly" fill="rgba(245,197,24,.1)" stroke="#f5c518" stroke-width="1.5" stroke-dasharray="6,3" points=""/>
             </svg>
-            <!-- corner handles injected by JS -->
           </div>
         </div>
-        <div class="manual-hint">Arrastra las esquinas amarillas para definir el área de la foto</div>
+        <div class="manual-note">Arrastra las esquinas para definir el área</div>
+        <div class="divider-full"></div>
       </div>
 
-      <div class="action-row">
-        <button class="btn btn-secondary" id="btn-retake">↩ Repetir</button>
-        <button class="btn btn-primary" id="btn-save" disabled>💾 Guardar</button>
+      <div class="act-row">
+        <button class="btn btn-outline" id="btn-retake">Repetir</button>
+        <button class="btn btn-solid"   id="btn-save" disabled>Guardar</button>
       </div>
 
     </div>
   </div>
 
   <!-- ── GALLERY ── -->
-  <div class="panel" id="gallery-panel">
-    <div class="gallery-grid" id="gallery-grid">
-      <div class="gallery-empty">
-        <div class="empty-state">
-          <div class="icon">🖼️</div>
-          Tu galería está vacía.<br>Captura tu primera foto revelada.
-        </div>
-      </div>
+  <div class="panel" id="gal-panel">
+    <div class="gal-grid" id="gal-grid">
+      <div class="gal-empty">Sin fotos aún.<br>Captura tu primera foto revelada.</div>
     </div>
   </div>
+
 </main>
 
 <div id="toast"></div>
+<div id="loader"><div class="spin"></div><div class="loader-txt" id="loader-txt">Procesando…</div></div>
 
-<div id="loading-overlay">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loading-text">Procesando…</div>
-</div>
-
-<script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()"></script>
-
+<script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onCvReady()"></script>
 <script>
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  STATE
-// ══════════════════════════════════════════════
-const state = {
+// ─────────────────────────────────────────────
+const S = {
   cvReady: false,
   stream: null,
-  facingMode: 'environment',
+  facing: 'environment',
   torch: false,
-  capturedCanvas: null,   // raw capture as canvas
-  detectedCorners: null,  // corners from live detection at capture time
-  resultCanvas: null,     // processed result
-  gallery: JSON.parse(localStorage.getItem('phototake_gallery') || '[]'),
-  adjustments: { brightness: 0, contrast: 0, saturation: 0 },
+  srcCanvas: null,       // raw capture
+  baseCanvas: null,      // perspective-corrected (no adjustments)
+  adj: { b: 0, c: 0, s: 0 },
+  gallery: JSON.parse(localStorage.getItem('pt_gal') || '[]'),
 };
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  OPENCV
-// ══════════════════════════════════════════════
-function onOpenCvReady() {
-  state.cvReady = true;
-  document.getElementById('cv-status').textContent = 'Listo';
-  document.getElementById('cv-status').className = 'status-badge ready';
-  document.getElementById('btn-capture').disabled = false;
-  startCamera();
+// ─────────────────────────────────────────────
+function onCvReady() {
+  S.cvReady = true;
+  setStatus('Listo', 'ready');
+  el('btn-cap').disabled = false;
+  startCam();
 }
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  CAMERA
-// ══════════════════════════════════════════════
-async function startCamera() {
-  stopCamera();
+// ─────────────────────────────────────────────
+async function startCam() {
+  stopCam();
   try {
-    const constraints = {
-      video: { facingMode: state.facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } },
+    S.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: S.facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
       audio: false,
-    };
-    state.stream = await navigator.mediaDevices.getUserMedia(constraints);
-    const video = document.getElementById('video');
-    video.srcObject = state.stream;
-    await video.play();
-    startDetectionLoop();
-  } catch (e) {
-    showToast('No se pudo acceder a la cámara: ' + e.message);
-  }
+    });
+    const v = el('video');
+    v.srcObject = S.stream;
+    await v.play();
+    startLoop();
+  } catch (e) { toast('Cámara: ' + e.message); }
 }
 
-function stopCamera() {
-  if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
-  stopDetectionLoop();
+function stopCam() {
+  stopLoop();
+  S.stream?.getTracks().forEach(t => t.stop());
+  S.stream = null;
 }
 
-// ══════════════════════════════════════════════
-//  REAL-TIME DETECTION + EMA SMOOTHING
-// ══════════════════════════════════════════════
-let detectionFrameId = null;
-
-// EMA smoothing — α controls responsiveness (lower = smoother)
-const SMOOTH_ALPHA = 0.15;
-// Frames without detection before clearing overlay
-const MISS_THRESHOLD = 10;
-
-let smoothedCorners = null;
+// ─────────────────────────────────────────────
+//  DETECTION LOOP + EMA SMOOTHING
+// ─────────────────────────────────────────────
+let rafId = null;
+let smoothed = null;
 let missFrames = 0;
+const ALPHA = 0.14;       // EMA factor — lower = smoother
+const MISS_MAX = 12;      // frames before clearing overlay
 
-function startDetectionLoop() {
-  stopDetectionLoop();
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('overlay-canvas');
+function startLoop() {
+  stopLoop();
+  const video = el('video');
+  const canvas = el('ov-canvas');
 
   function loop() {
-    if (!state.cvReady || video.readyState < 2) {
-      detectionFrameId = requestAnimationFrame(loop);
-      return;
-    }
+    if (!S.cvReady || video.readyState < 2) { rafId = requestAnimationFrame(loop); return; }
 
     const vw = video.videoWidth, vh = video.videoHeight;
     canvas.width = vw; canvas.height = vh;
 
-    // Draw video frame to detect on
-    const offscreen = document.createElement('canvas');
-    offscreen.width = vw; offscreen.height = vh;
-    offscreen.getContext('2d').drawImage(video, 0, 0);
+    const tmp = makeCanvas(vw, vh);
+    tmp.getContext('2d').drawImage(video, 0, 0);
 
-    const raw = detectPhotoCorners(offscreen);
+    const raw = detectCorners(tmp);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, vw, vh);
 
-    const indicator = document.getElementById('detection-indicator');
-    const hint = document.getElementById('camera-hint');
-
     if (raw) {
       missFrames = 0;
-      // EMA: blend new corners towards previous smoothed
-      if (!smoothedCorners) {
-        smoothedCorners = raw.map(p => ({ x: p.x, y: p.y }));
-      } else {
-        smoothedCorners = smoothedCorners.map((s, i) => ({
-          x: s.x + SMOOTH_ALPHA * (raw[i].x - s.x),
-          y: s.y + SMOOTH_ALPHA * (raw[i].y - s.y),
-        }));
-      }
-      state.detectedCorners = smoothedCorners;
-      drawDetectionOverlay(ctx, smoothedCorners, vw, vh);
-      indicator.className = 'detection-indicator detected';
-      hint.textContent = '✓ Foto detectada — captura cuando quieras';
+      smoothed = smoothed
+        ? smoothed.map((s, i) => ({ x: s.x + ALPHA * (raw[i].x - s.x), y: s.y + ALPHA * (raw[i].y - s.y) }))
+        : raw.map(p => ({ ...p }));
+      S.detectedCorners = smoothed;
+      drawOverlay(ctx, smoothed, vw);
+      setDot('found');
+      el('cam-hint').textContent = '✓ Detectada — captura cuando quieras';
     } else {
       missFrames++;
-      if (missFrames > MISS_THRESHOLD) {
-        smoothedCorners = null;
-        state.detectedCorners = null;
-        indicator.className = 'detection-indicator scanning';
-        hint.textContent = 'Apunta la cámara a una foto revelada';
-      } else if (smoothedCorners) {
-        // Keep last known overlay until threshold — no jitter on brief miss
-        drawDetectionOverlay(ctx, smoothedCorners, vw, vh);
+      if (missFrames > MISS_MAX) {
+        smoothed = null; S.detectedCorners = null;
+        setDot('scan');
+        el('cam-hint').textContent = 'Apunta a una foto revelada';
+      } else if (smoothed) {
+        drawOverlay(ctx, smoothed, vw);
       }
     }
-
-    detectionFrameId = requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(loop);
   }
-
-  detectionFrameId = requestAnimationFrame(loop);
+  rafId = requestAnimationFrame(loop);
 }
 
-function stopDetectionLoop() {
-  if (detectionFrameId) { cancelAnimationFrame(detectionFrameId); detectionFrameId = null; }
-}
+function stopLoop() { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
 
-function drawDetectionOverlay(ctx, corners, w, h) {
+function drawOverlay(ctx, pts, vw) {
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(corners[0].x, corners[0].y);
-  for (let i = 1; i < 4; i++) ctx.lineTo(corners[i].x, corners[i].y);
+  pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
   ctx.closePath();
-  ctx.fillStyle = 'rgba(245,197,24,0.12)';
+  ctx.fillStyle = 'rgba(245,197,24,.1)';
   ctx.fill();
   ctx.strokeStyle = '#f5c518';
-  ctx.lineWidth = Math.max(2, w * 0.003);
-  ctx.setLineDash([]);
+  ctx.lineWidth = Math.max(2, vw * 0.0025);
   ctx.stroke();
-  corners.forEach(c => {
+  pts.forEach(p => {
     ctx.beginPath();
-    ctx.arc(c.x, c.y, Math.max(6, w * 0.008), 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, Math.max(5, vw * 0.007), 0, Math.PI * 2);
     ctx.fillStyle = '#f5c518';
     ctx.fill();
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
   });
   ctx.restore();
 }
 
-// ══════════════════════════════════════════════
-//  OPENCV DETECTION
-// ══════════════════════════════════════════════
-function detectPhotoCorners(sourceCanvas) {
+// ─────────────────────────────────────────────
+//  CORNER DETECTION (OpenCV)
+// ─────────────────────────────────────────────
+function detectCorners(srcCanvas) {
   try {
-    const src = cv.imread(sourceCanvas);
-    const gray = new cv.Mat(), blurred = new cv.Mat();
-    const edges = new cv.Mat(), dilated = new cv.Mat();
-    const contours = new cv.MatVector(), hierarchy = new cv.Mat();
+    const src = cv.imread(srcCanvas);
+    const gray = new cv.Mat(), blur = new cv.Mat();
+    const edges = new cv.Mat(), dil = new cv.Mat();
+    const cnts = new cv.MatVector(), hier = new cv.Mat();
 
-    const maxDim = 800;
-    const scale = Math.min(1, maxDim / Math.max(src.rows, src.cols));
+    const MAX = 800;
+    const sc = Math.min(1, MAX / Math.max(src.rows, src.cols));
     const small = new cv.Mat();
-    cv.resize(src, small, new cv.Size(Math.round(src.cols * scale), Math.round(src.rows * scale)));
+    cv.resize(src, small, new cv.Size(Math.round(src.cols * sc), Math.round(src.rows * sc)));
 
     cv.cvtColor(small, gray, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
-    cv.Canny(blurred, edges, 50, 150);
+    cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
+    cv.Canny(blur, edges, 50, 150);
 
-    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
-    cv.dilate(edges, dilated, kernel);
-    kernel.delete();
+    const k = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+    cv.dilate(edges, dil, k); k.delete();
 
-    cv.findContours(dilated, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    cv.findContours(dil, cnts, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
-    let bestCorners = null, bestArea = 0;
+    let best = null, bestArea = 0;
     const imgArea = small.rows * small.cols;
 
-    for (let i = 0; i < contours.size(); i++) {
-      const cnt = contours.get(i);
+    for (let i = 0; i < cnts.size(); i++) {
+      const cnt = cnts.get(i);
       const peri = cv.arcLength(cnt, true);
       const approx = new cv.Mat();
       cv.approxPolyDP(cnt, approx, 0.02 * peri, true);
 
       if (approx.rows === 4) {
         const area = Math.abs(cv.contourArea(approx));
-        if (area > imgArea * 0.05 && area < imgArea * 0.98 && area > bestArea) {
+        if (area > imgArea * 0.05 && area < imgArea * 0.97 && area > bestArea) {
           const pts = [];
-          for (let j = 0; j < 4; j++) {
-            pts.push({ x: approx.data32S[j * 2] / scale, y: approx.data32S[j * 2 + 1] / scale });
-          }
-          bestCorners = orderCorners(pts);
+          for (let j = 0; j < 4; j++)
+            pts.push({ x: approx.data32S[j * 2] / sc, y: approx.data32S[j * 2 + 1] / sc });
+          best = orderCorners(pts);
           bestArea = area;
         }
       }
       approx.delete(); cnt.delete();
     }
 
-    src.delete(); gray.delete(); blurred.delete(); edges.delete();
-    dilated.delete(); contours.delete(); hierarchy.delete(); small.delete();
-    return bestCorners;
-  } catch (e) {
-    console.warn('Detection error:', e);
-    return null;
-  }
+    [src, gray, blur, edges, dil, cnts, hier, small].forEach(m => m.delete());
+    return best;
+  } catch { return null; }
 }
 
+// TL = min(x+y), TR = max(x−y), BR = max(x+y), BL = min(x−y)
 function orderCorners(pts) {
-  const cx = pts.reduce((s, p) => s + p.x, 0) / 4;
-  const cy = pts.reduce((s, p) => s + p.y, 0) / 4;
-  const byAngle = [...pts].sort((a, b) =>
-    Math.atan2(a.y - cy, a.x - cx) - Math.atan2(b.y - cy, b.x - cx)
-  );
-  // Rotate so top-left is first
-  let start = byAngle.findIndex(p => p.x < cx && p.y < cy);
-  if (start < 0) start = 0;
-  const reordered = [...byAngle.slice(start), ...byAngle.slice(0, start)];
-  return reordered; // TL, BL, BR, TR order (clockwise from TL)
+  const tl = pts.reduce((b, p) => p.x + p.y < b.x + b.y ? p : b);
+  const br = pts.reduce((b, p) => p.x + p.y > b.x + b.y ? p : b);
+  const tr = pts.reduce((b, p) => p.x - p.y > b.x - b.y ? p : b);
+  const bl = pts.reduce((b, p) => p.x - p.y < b.x - b.y ? p : b);
+  return [tl, tr, br, bl]; // clockwise: TL TR BR BL
 }
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  PERSPECTIVE CORRECTION
-// ══════════════════════════════════════════════
-function perspectiveCorrect(sourceCanvas, corners) {
-  const src = cv.imread(sourceCanvas);
-  const [tl, bl, br, tr] = corners; // our order: TL BL BR TR
+// ─────────────────────────────────────────────
+function perspectiveCorrect(srcCanvas, corners) {
+  const src = cv.imread(srcCanvas);
+  const [tl, tr, br, bl] = corners;
 
-  const widthTop = Math.hypot(tr.x - tl.x, tr.y - tl.y);
-  const widthBot = Math.hypot(br.x - bl.x, br.y - bl.y);
-  const dstW = Math.round(Math.max(widthTop, widthBot));
-
-  const heightLeft = Math.hypot(bl.x - tl.x, bl.y - tl.y);
-  const heightRight = Math.hypot(br.x - tr.x, br.y - tr.y);
-  const dstH = Math.round(Math.max(heightLeft, heightRight));
+  const dstW = Math.round(Math.max(
+    Math.hypot(tr.x - tl.x, tr.y - tl.y),
+    Math.hypot(br.x - bl.x, br.y - bl.y)
+  ));
+  const dstH = Math.round(Math.max(
+    Math.hypot(bl.x - tl.x, bl.y - tl.y),
+    Math.hypot(br.x - tr.x, br.y - tr.y)
+  ));
 
   const srcPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    tl.x, tl.y, bl.x, bl.y, br.x, br.y, tr.x, tr.y,
+    tl.x, tl.y,  tr.x, tr.y,  br.x, br.y,  bl.x, bl.y,
   ]);
   const dstPts = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    0, 0, 0, dstH, dstW, dstH, dstW, 0,
+    0, 0,  dstW, 0,  dstW, dstH,  0, dstH,
   ]);
 
   const M = cv.getPerspectiveTransform(srcPts, dstPts);
   const dst = new cv.Mat();
   cv.warpPerspective(src, dst, M, new cv.Size(dstW, dstH), cv.INTER_LINEAR);
 
-  const out = document.createElement('canvas');
+  const out = makeCanvas(dstW, dstH);
   cv.imshow(out, dst);
-
-  src.delete(); dst.delete(); M.delete(); srcPts.delete(); dstPts.delete();
+  [src, dst, M, srcPts, dstPts].forEach(m => m.delete());
   return out;
 }
 
-// ══════════════════════════════════════════════
-//  CAPTURE
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
+//  CAPTURE → PROCESS
+// ─────────────────────────────────────────────
 function capture() {
-  const video = document.getElementById('video');
-  const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext('2d').drawImage(video, 0, 0);
-  state.capturedCanvas = canvas;
-
-  switchTab('process');
-  processCapture(state.detectedCorners);
+  const v = el('video');
+  S.srcCanvas = makeCanvas(v.videoWidth, v.videoHeight);
+  S.srcCanvas.getContext('2d').drawImage(v, 0, 0);
+  switchTab('proc');
+  processImage(S.detectedCorners);
 }
 
-function processCapture(corners) {
-  const src = state.capturedCanvas;
-  if (!src) return;
+function processImage(corners) {
+  if (!S.srcCanvas) return;
+  showLoader('Procesando…');
 
-  showLoading('Detectando y recortando…');
   setTimeout(() => {
     try {
-      const detectedCorners = corners || detectPhotoCorners(src);
-      const label = document.getElementById('detection-label');
-      const resultWrap = document.getElementById('result-wrap');
-      resultWrap.innerHTML = '';
+      const detected = corners || detectCorners(S.srcCanvas);
+      const lbl = el('det-lbl');
 
-      if (detectedCorners) {
-        label.textContent = '✓ Detectada automáticamente';
-        label.style.color = 'var(--success)';
-        const corrected = perspectiveCorrect(src, detectedCorners);
-        corrected.style.maxWidth = '100%';
-        corrected.style.maxHeight = '260px';
-        corrected.style.objectFit = 'contain';
-        resultWrap.appendChild(corrected);
-        state.resultCanvas = corrected;
+      if (detected) {
+        S.baseCanvas = perspectiveCorrect(S.srcCanvas, detected);
+        lbl.textContent = 'Auto';
+        lbl.style.color = 'var(--ok)';
       } else {
-        label.textContent = '⚠ No detectada — ajusta manualmente';
-        label.style.color = 'var(--accent)';
-        resultWrap.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div>Usa el ajuste manual abajo</div>`;
-        state.resultCanvas = null;
+        S.baseCanvas = null;
+        lbl.textContent = 'No detectada';
+        lbl.style.color = 'var(--gold)';
       }
 
-      // Always show manual section with the raw capture
-      setupManualCrop(src, detectedCorners);
-
-      resetAdjustments();
-      document.getElementById('btn-save').disabled = !state.resultCanvas;
-      hideLoading();
-    } catch (e) {
-      hideLoading();
-      showToast('Error: ' + e.message);
-      console.error(e);
-    }
-  }, 50);
+      resetAdj();
+      renderResult();
+      setupManual(S.srcCanvas, detected);
+      el('btn-save').disabled = !S.baseCanvas;
+    } finally { hideLoader(); }
+  }, 40);
 }
 
-// ══════════════════════════════════════════════
-//  MANUAL CROP
-// ══════════════════════════════════════════════
-// manualPts: [{x,y}×4] in display-space pixels
-let manualPts = [];
-
-function setupManualCrop(srcCanvas, autoCorners) {
-  const section = document.getElementById('manual-section');
-  const stage = document.getElementById('manual-stage');
-  const canvas = document.getElementById('manual-canvas');
-
-  // Remove old handles
-  stage.querySelectorAll('.corner-handle').forEach(el => el.remove());
-
-  // Draw the raw capture scaled to fit
-  const maxW = Math.min(srcCanvas.width, stage.parentElement.clientWidth || 400);
-  const scale = maxW / srcCanvas.width;
-  const dispW = Math.round(srcCanvas.width * scale);
-  const dispH = Math.round(srcCanvas.height * scale);
-
-  canvas.width = srcCanvas.width;
-  canvas.height = srcCanvas.height;
-  canvas.style.width = dispW + 'px';
-  canvas.style.height = dispH + 'px';
-  canvas.getContext('2d').drawImage(srcCanvas, 0, 0);
-
-  // Default corners: either from auto-detection or 10% inset
-  if (autoCorners) {
-    manualPts = autoCorners.map(p => ({ x: p.x * scale, y: p.y * scale }));
-  } else {
-    const pad = 0.1;
-    manualPts = [
-      { x: dispW * pad,        y: dispH * pad },
-      { x: dispW * pad,        y: dispH * (1 - pad) },
-      { x: dispW * (1 - pad),  y: dispH * (1 - pad) },
-      { x: dispW * (1 - pad),  y: dispH * pad },
-    ];
-  }
-
-  // Create handles
-  manualPts.forEach((pt, idx) => {
-    const dot = document.createElement('div');
-    dot.className = 'corner-handle';
-    dot.style.left = pt.x + 'px';
-    dot.style.top = pt.y + 'px';
-    stage.appendChild(dot);
-    makeDraggable(dot, idx, dispW, dispH);
-  });
-
-  updateManualPoly();
-  section.style.display = 'block';
-}
-
-function makeDraggable(el, idx, maxW, maxH) {
-  let startX, startY, origX, origY;
-
-  function onStart(e) {
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    startX = touch.clientX; startY = touch.clientY;
-    origX = manualPts[idx].x; origY = manualPts[idx].y;
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('mouseup', onEnd);
-    document.addEventListener('touchend', onEnd);
-  }
-
-  function onMove(e) {
-    e.preventDefault();
-    const touch = e.touches ? e.touches[0] : e;
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const nx = Math.max(0, Math.min(maxW, origX + dx));
-    const ny = Math.max(0, Math.min(maxH, origY + dy));
-    manualPts[idx] = { x: nx, y: ny };
-    el.style.left = nx + 'px';
-    el.style.top = ny + 'px';
-    updateManualPoly();
-  }
-
-  function onEnd() {
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('mouseup', onEnd);
-    document.removeEventListener('touchend', onEnd);
-  }
-
-  el.addEventListener('mousedown', onStart);
-  el.addEventListener('touchstart', onStart, { passive: false });
-}
-
-function updateManualPoly() {
-  const poly = document.getElementById('manual-poly');
-  const pts = manualPts;
-  poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
-}
-
-function applyManualCrop() {
-  const src = state.capturedCanvas;
-  if (!src) return;
-
-  // Map display-space pts back to image-space
-  const canvas = document.getElementById('manual-canvas');
-  const scaleX = src.width / parseFloat(canvas.style.width);
-  const scaleY = src.height / parseFloat(canvas.style.height);
-
-  const imgCorners = manualPts.map(p => ({
-    x: p.x * scaleX,
-    y: p.y * scaleY,
-  }));
-
-  showLoading('Aplicando recorte manual…');
-  setTimeout(() => {
-    try {
-      const corrected = perspectiveCorrect(src, imgCorners);
-      corrected.style.maxWidth = '100%';
-      corrected.style.maxHeight = '260px';
-      const resultWrap = document.getElementById('result-wrap');
-      resultWrap.innerHTML = '';
-      resultWrap.appendChild(corrected);
-      state.resultCanvas = corrected;
-      document.getElementById('detection-label').textContent = '✓ Recorte manual aplicado';
-      document.getElementById('detection-label').style.color = 'var(--accent)';
-      document.getElementById('btn-save').disabled = false;
-      hideLoading();
-      showToast('Recorte manual aplicado');
-    } catch (e) {
-      hideLoading();
-      showToast('Error al aplicar: ' + e.message);
-    }
-  }, 50);
-}
-
-// ══════════════════════════════════════════════
-//  ADJUSTMENTS
-// ══════════════════════════════════════════════
-function resetAdjustments() {
-  state.adjustments = { brightness: 0, contrast: 0, saturation: 0 };
-  ['brightness', 'contrast', 'saturation'].forEach(k => {
-    document.getElementById('sl-' + k).value = 0;
-    document.getElementById('val-' + k).textContent = 0;
+// ─────────────────────────────────────────────
+//  ADJUSTMENTS — live preview
+// ─────────────────────────────────────────────
+function resetAdj() {
+  S.adj = { b: 0, c: 0, s: 0 };
+  [['sl-b','vl-b'], ['sl-c','vl-c'], ['sl-s','vl-s']].forEach(([sl, vl]) => {
+    el(sl).value = 0; el(vl).textContent = 0;
   });
 }
 
-function applyAdjustments() {
-  if (!state.resultCanvas) return null;
-  const src = state.resultCanvas;
-  const out = document.createElement('canvas');
-  out.width = src.width; out.height = src.height;
+function applyAdj(srcCanvas) {
+  if (!srcCanvas) return null;
+  const { b, c, s } = S.adj;
+  const out = makeCanvas(srcCanvas.width, srcCanvas.height);
   const ctx = out.getContext('2d');
-  const { brightness, contrast, saturation } = state.adjustments;
-  const b = brightness / 100;
-  const c = (contrast + 100) / 100;
-  const s = (saturation + 100) / 100;
-  ctx.filter = `brightness(${1 + b}) contrast(${c}) saturate(${s})`;
-  ctx.drawImage(src, 0, 0);
+  ctx.filter = `brightness(${1 + b / 100}) contrast(${(c + 100) / 100}) saturate(${(s + 100) / 100})`;
+  ctx.drawImage(srcCanvas, 0, 0);
   ctx.filter = 'none';
   return out;
 }
 
-// ══════════════════════════════════════════════
+function renderResult() {
+  const wrap = el('result-wrap');
+  if (!S.baseCanvas) {
+    wrap.innerHTML = '<div class="empty-msg">No se detectó la foto.<br>Usa el ajuste manual abajo.</div>';
+    return;
+  }
+  const adjusted = applyAdj(S.baseCanvas);
+  wrap.innerHTML = '';
+  adjusted.style.maxHeight = '300px';
+  wrap.appendChild(adjusted);
+}
+
+// Slider listeners
+[['sl-b', 'vl-b', 'b'], ['sl-c', 'vl-c', 'c'], ['sl-s', 'vl-s', 's']].forEach(([slId, vlId, key]) => {
+  el(slId)?.addEventListener('input', () => {
+    const v = parseInt(el(slId).value);
+    S.adj[key] = v;
+    el(vlId).textContent = v;
+    renderResult(); // live update
+  });
+});
+
+// ─────────────────────────────────────────────
+//  MANUAL CROP
+// ─────────────────────────────────────────────
+let manPts = [];
+
+function setupManual(srcCanvas, autoCorners) {
+  const sec = el('manual-sec');
+  const stage = el('manual-stage');
+  const canvas = el('manual-canvas');
+
+  stage.querySelectorAll('.c-dot').forEach(d => d.remove());
+
+  const maxW = Math.min(srcCanvas.width, (stage.parentElement?.clientWidth || 400));
+  const sc = maxW / srcCanvas.width;
+  const dW = Math.round(srcCanvas.width * sc);
+  const dH = Math.round(srcCanvas.height * sc);
+
+  canvas.width = srcCanvas.width;
+  canvas.height = srcCanvas.height;
+  canvas.style.width = dW + 'px';
+  canvas.style.height = dH + 'px';
+  canvas.getContext('2d').drawImage(srcCanvas, 0, 0);
+
+  const pad = 0.1;
+  if (autoCorners) {
+    manPts = autoCorners.map(p => ({ x: p.x * sc, y: p.y * sc }));
+  } else {
+    manPts = [
+      { x: dW * pad,       y: dH * pad },
+      { x: dW * (1 - pad), y: dH * pad },
+      { x: dW * (1 - pad), y: dH * (1 - pad) },
+      { x: dW * pad,       y: dH * (1 - pad) },
+    ];
+  }
+
+  manPts.forEach((pt, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'c-dot';
+    dot.style.left = pt.x + 'px';
+    dot.style.top = pt.y + 'px';
+    stage.appendChild(dot);
+    attachDrag(dot, i, dW, dH);
+  });
+
+  updatePoly();
+  sec.style.display = 'block';
+}
+
+function attachDrag(el_, idx, maxW, maxH) {
+  let sx, sy, ox, oy;
+  const start = e => {
+    e.preventDefault();
+    const t = e.touches?.[0] ?? e;
+    sx = t.clientX; sy = t.clientY;
+    ox = manPts[idx].x; oy = manPts[idx].y;
+    on(document, 'mousemove touchmove', move, { passive: false });
+    on(document, 'mouseup touchend', end);
+  };
+  const move = e => {
+    e.preventDefault();
+    const t = e.touches?.[0] ?? e;
+    manPts[idx] = {
+      x: clamp(ox + t.clientX - sx, 0, maxW),
+      y: clamp(oy + t.clientY - sy, 0, maxH),
+    };
+    el_.style.left = manPts[idx].x + 'px';
+    el_.style.top  = manPts[idx].y + 'px';
+    updatePoly();
+  };
+  const end = () => {
+    off(document, 'mousemove touchmove', move);
+    off(document, 'mouseup touchend', end);
+  };
+  on(el_, 'mousedown touchstart', start, { passive: false });
+}
+
+function updatePoly() {
+  el('manual-poly').setAttribute('points', manPts.map(p => `${p.x},${p.y}`).join(' '));
+}
+
+function applyManual() {
+  if (!S.srcCanvas) return;
+  const canvas = el('manual-canvas');
+  const scX = S.srcCanvas.width  / parseFloat(canvas.style.width);
+  const scY = S.srcCanvas.height / parseFloat(canvas.style.height);
+  const imgCorners = manPts.map(p => ({ x: p.x * scX, y: p.y * scY }));
+
+  showLoader('Aplicando recorte manual…');
+  setTimeout(() => {
+    try {
+      S.baseCanvas = perspectiveCorrect(S.srcCanvas, imgCorners);
+      el('det-lbl').textContent = 'Manual';
+      el('det-lbl').style.color = 'var(--gold)';
+      renderResult();
+      el('btn-save').disabled = false;
+      toast('Recorte aplicado');
+    } finally { hideLoader(); }
+  }, 40);
+}
+
+// ─────────────────────────────────────────────
 //  SAVE
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 function savePhoto() {
-  const final = applyAdjustments() || state.resultCanvas;
+  const final = applyAdj(S.baseCanvas) || S.baseCanvas;
   if (!final) return;
 
-  const dataUrl = final.toDataURL('image/jpeg', 0.92);
-  const timestamp = new Date().toISOString();
-  state.gallery.unshift({ dataUrl, timestamp, id: Date.now() });
-  localStorage.setItem('phototake_gallery', JSON.stringify(state.gallery));
-  updateGalleryCount();
+  const dataUrl = final.toDataURL('image/jpeg', 0.93);
+  S.gallery.unshift({ dataUrl, ts: new Date().toISOString(), id: Date.now() });
+  localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
   renderGallery();
 
   const a = document.createElement('a');
@@ -1036,141 +940,108 @@ function savePhoto() {
   a.href = dataUrl;
   a.click();
 
-  showToast('📸 Guardada y descargada');
-  switchTab('gallery');
+  toast('Guardada y descargada');
+  switchTab('gal');
 }
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  GALLERY
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 function renderGallery() {
-  const grid = document.getElementById('gallery-grid');
-  if (!state.gallery.length) {
-    grid.innerHTML = `<div class="gallery-empty"><div class="empty-state"><div class="icon">🖼️</div>Tu galería está vacía.<br>Captura tu primera foto revelada.</div></div>`;
+  el('gal-n').textContent = S.gallery.length;
+  const grid = el('gal-grid');
+  if (!S.gallery.length) {
+    grid.innerHTML = '<div class="gal-empty">Sin fotos aún.<br>Captura tu primera foto revelada.</div>';
     return;
   }
-  grid.innerHTML = state.gallery.map(item => `
-    <div class="gallery-item" data-id="${item.id}">
-      <img src="${item.dataUrl}" alt="Foto digitalizada" loading="lazy">
-      <div class="gallery-item-date">${new Date(item.timestamp).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</div>
-      <div class="gallery-item-actions">
-        <button class="gallery-action-btn" onclick="downloadPhoto('${item.id}')" title="Descargar">⬇</button>
-        <button class="gallery-action-btn" onclick="deletePhoto('${item.id}')" title="Eliminar">🗑</button>
+  grid.innerHTML = S.gallery.map(item => `
+    <div class="gal-item">
+      <img src="${item.dataUrl}" loading="lazy" alt="">
+      <div class="gal-overlay"></div>
+      <div class="gal-date">${fmtDate(item.ts)}</div>
+      <div class="gal-acts">
+        <button class="gal-act-btn" onclick="dlPhoto('${item.id}')">↓</button>
+        <button class="gal-act-btn" onclick="delPhoto('${item.id}')">×</button>
       </div>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
-function downloadPhoto(id) {
-  const item = state.gallery.find(i => String(i.id) === String(id));
+function dlPhoto(id) {
+  const item = S.gallery.find(i => String(i.id) === String(id));
   if (!item) return;
   const a = document.createElement('a');
-  a.download = `phototake_${id}.jpg`;
-  a.href = item.dataUrl;
-  a.click();
+  a.download = `phototake_${id}.jpg`; a.href = item.dataUrl; a.click();
 }
 
-function deletePhoto(id) {
-  state.gallery = state.gallery.filter(i => String(i.id) !== String(id));
-  localStorage.setItem('phototake_gallery', JSON.stringify(state.gallery));
-  updateGalleryCount();
+function delPhoto(id) {
+  S.gallery = S.gallery.filter(i => String(i.id) !== String(id));
+  localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
   renderGallery();
-  showToast('Foto eliminada');
+  toast('Eliminada');
 }
 
-function updateGalleryCount() {
-  document.getElementById('gallery-count').textContent = state.gallery.length;
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  TABS
-// ══════════════════════════════════════════════
-function switchTab(tabId) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === tabId + '-panel'));
-  if (tabId === 'camera') {
-    if (!state.stream) startCamera(); else startDetectionLoop();
-  } else {
-    stopDetectionLoop();
-  }
+// ─────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === id + '-panel'));
+  if (id === 'cam') { if (!S.stream) startCam(); else startLoop(); }
+  else stopLoop();
 }
 
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  TORCH
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 async function toggleTorch() {
-  if (!state.stream) return;
-  const track = state.stream.getVideoTracks()[0];
-  if (!track || !track.getCapabilities().torch) {
-    showToast('Linterna no disponible en este dispositivo');
-    return;
-  }
-  state.torch = !state.torch;
-  await track.applyConstraints({ advanced: [{ torch: state.torch }] });
-  document.getElementById('btn-torch').textContent = state.torch ? '💡' : '🔦';
+  if (!S.stream) return;
+  const track = S.stream.getVideoTracks()[0];
+  if (!track?.getCapabilities?.().torch) { toast('Linterna no disponible'); return; }
+  S.torch = !S.torch;
+  await track.applyConstraints({ advanced: [{ torch: S.torch }] });
+  el('btn-torch').textContent = S.torch ? '●' : '⚡';
 }
 
-// ══════════════════════════════════════════════
-//  UI HELPERS
-// ══════════════════════════════════════════════
-function showLoading(msg) {
-  document.getElementById('loading-text').textContent = msg || 'Procesando…';
-  document.getElementById('loading-overlay').classList.add('show');
-}
-function hideLoading() {
-  document.getElementById('loading-overlay').classList.remove('show');
-}
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+const el = id => document.getElementById(id);
+const makeCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const on  = (t, ev, fn, opt) => ev.split(' ').forEach(e => t.addEventListener(e, fn, opt));
+const off = (t, ev, fn)      => ev.split(' ').forEach(e => t.removeEventListener(e, fn));
+const setDot = cls => el('cam-dot').className = 'cam-dot ' + cls;
+const setStatus = (txt, cls) => { const s = el('cv-status'); s.textContent = txt; s.className = 'pill ' + cls; };
 
-let toastTimer;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+let toastTmr;
+function toast(msg) {
+  const t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTmr); toastTmr = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-// ══════════════════════════════════════════════
-//  EVENT LISTENERS
-// ══════════════════════════════════════════════
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-});
+function showLoader(msg) { el('loader-txt').textContent = msg; el('loader').classList.add('on'); }
+function hideLoader()    { el('loader').classList.remove('on'); }
 
-document.getElementById('btn-capture').addEventListener('click', capture);
+// ─────────────────────────────────────────────
+//  WIRE UP EVENTS
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+el('btn-cap').addEventListener('click', capture);
+el('btn-flip').addEventListener('click', () => { S.facing = S.facing === 'environment' ? 'user' : 'environment'; startCam(); });
+el('btn-torch').addEventListener('click', toggleTorch);
+el('btn-save').addEventListener('click', savePhoto);
+el('btn-retake').addEventListener('click', () => switchTab('cam'));
+el('btn-apply-man').addEventListener('click', applyManual);
 
-document.getElementById('btn-flip').addEventListener('click', () => {
-  state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
-  startCamera();
-});
-
-document.getElementById('btn-torch').addEventListener('click', toggleTorch);
-document.getElementById('btn-save').addEventListener('click', savePhoto);
-document.getElementById('btn-retake').addEventListener('click', () => switchTab('camera'));
-document.getElementById('btn-apply-manual').addEventListener('click', applyManualCrop);
-
-['brightness', 'contrast', 'saturation'].forEach(key => {
-  const sl = document.getElementById('sl-' + key);
-  const val = document.getElementById('val-' + key);
-  sl.addEventListener('input', () => {
-    state.adjustments[key] = parseInt(sl.value);
-    val.textContent = sl.value;
-  });
-});
-
-// ══════════════════════════════════════════════
+// ─────────────────────────────────────────────
 //  INIT
-// ══════════════════════════════════════════════
-updateGalleryCount();
+// ─────────────────────────────────────────────
 renderGallery();
-
-setTimeout(() => {
-  if (!state.cvReady) {
-    document.getElementById('cv-status').textContent = 'Error OpenCV';
-    document.getElementById('cv-status').className = 'status-badge';
-    showToast('No se pudo cargar OpenCV.js — verifica tu conexión');
-  }
-}, 10000);
+setTimeout(() => { if (!S.cvReady) setStatus('Error', ''); }, 10000);
 </script>
 </body>
 </html>
