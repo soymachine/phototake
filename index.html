@@ -425,7 +425,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v1.4</span>
+    <span class="ver">v1.5</span>
   </div>
   <span class="pill loading" id="cv-status">Cargando…</span>
 </header>
@@ -791,6 +791,7 @@ function processImage(corners) {
         lbl.style.color = 'var(--gold)';
       }
 
+      el('result-wrap').innerHTML = '';
       resetAdj();
       renderResult();
       setupManual(S.srcCanvas, detected);
@@ -826,10 +827,20 @@ function renderResult() {
     wrap.innerHTML = '<div class="empty-msg">No se detectó la foto.<br>Usa el ajuste manual abajo.</div>';
     return;
   }
-  const adjusted = applyAdj(S.baseCanvas);
-  wrap.innerHTML = '';
-  adjusted.style.maxHeight = '300px';
-  wrap.appendChild(adjusted);
+
+  // Use <img> so object-fit:contain works and CSS filter is instant
+  let img = wrap.querySelector('img.result-img');
+  if (!img) {
+    wrap.innerHTML = '';
+    img = document.createElement('img');
+    img.className = 'result-img';
+    // Convert base canvas to data URL once; filter applied via CSS
+    img.src = S.baseCanvas.toDataURL('image/jpeg', 0.95);
+    wrap.appendChild(img);
+  }
+
+  const { b, c, s } = S.adj;
+  img.style.filter = `brightness(${1 + b / 100}) contrast(${(c + 100) / 100}) saturate(${(s + 100) / 100})`;
 }
 
 // Slider listeners
@@ -935,6 +946,7 @@ function applyManual() {
       S.baseCanvas = perspectiveCorrect(S.srcCanvas, imgCorners);
       el('det-lbl').textContent = 'Manual';
       el('det-lbl').style.color = 'var(--gold)';
+      el('result-wrap').innerHTML = '';
       renderResult();
       el('btn-save').disabled = false;
       toast('Recorte aplicado');
