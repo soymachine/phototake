@@ -541,7 +541,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.8</span>
+    <span class="ver">v2.9</span>
   </div>
   <span class="pill loading" id="cv-status">INIT_</span>
 </header>
@@ -1207,26 +1207,37 @@ function applyManual() {
 // ─────────────────────────────────────────────
 function savePhoto(fmt = 'jpeg') {
   if (!S.baseCanvas) return;
+  const isPng = fmt === 'png';
   showLoader('Guardando…');
   setTimeout(() => {
     try {
       const final = applyAdj(S.baseCanvas) || S.baseCanvas;
-      const isPng = fmt === 'png';
-      const dataUrl = isPng
-        ? final.toDataURL('image/png')
-        : final.toDataURL('image/jpeg', 0.97);
-      S.gallery.unshift({ dataUrl, ts: new Date().toISOString(), id: Date.now() });
+      // Gallery thumbnail: always compact JPEG for localStorage budget
+      S.gallery.unshift({
+        dataUrl: final.toDataURL('image/jpeg', 0.82),
+        ts: new Date().toISOString(),
+        id: Date.now(),
+      });
       localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
       renderGallery();
-
-      const a = document.createElement('a');
-      a.download = `phototake_${Date.now()}.${isPng ? 'png' : 'jpg'}`;
-      a.href = dataUrl;
-      a.click();
-
-      toast(isPng ? 'PNG lossless guardado' : 'JPEG guardado');
-      switchTab('gal');
-    } finally { hideLoader(); }
+      // Download via Blob URL — handles large files reliably (data URLs can fail at 4K+)
+      final.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `phototake_${Date.now()}.${isPng ? 'png' : 'jpg'}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        toast(isPng ? 'PNG guardado' : 'JPEG guardado');
+        switchTab('gal');
+        hideLoader();
+      }, isPng ? 'image/png' : 'image/jpeg', isPng ? undefined : 0.97);
+    } catch (e) {
+      hideLoader();
+      toast('Error al guardar');
+    }
   }, 40);
 }
 
