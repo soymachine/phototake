@@ -541,7 +541,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.7</span>
+    <span class="ver">v2.8</span>
   </div>
   <span class="pill loading" id="cv-status">INIT_</span>
 </header>
@@ -628,7 +628,8 @@
 
       <div class="act-row">
         <button class="btn btn-outline" id="btn-retake">Repetir</button>
-        <button class="btn btn-solid"   id="btn-save" disabled>Guardar →</button>
+        <button class="btn btn-solid"   id="btn-save" disabled>JPEG →</button>
+        <button class="btn btn-outline" id="btn-save-png" disabled>PNG →</button>
       </div>
 
     </div>
@@ -700,7 +701,7 @@ async function startCam() {
   stopCam();
   try {
     S.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: S.facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      video: { facingMode: S.facing, width: { ideal: 4096 }, height: { ideal: 3072 } },
       audio: false,
     });
     const v = el('video');
@@ -919,6 +920,7 @@ function processImage(corners) {
       renderResult();
       setupManual(S.srcCanvas, detected);
       el('btn-save').disabled = !S.baseCanvas;
+      el('btn-save-png').disabled = !S.baseCanvas;
     } finally { hideLoader(); }
   }, 40);
 }
@@ -1194,6 +1196,7 @@ function applyManual() {
       el('result-wrap').innerHTML = '';
       renderResult();
       el('btn-save').disabled = false;
+      el('btn-save-png').disabled = false;
       toast('Recorte aplicado');
     } finally { hideLoader(); }
   }, 40);
@@ -1202,23 +1205,26 @@ function applyManual() {
 // ─────────────────────────────────────────────
 //  SAVE
 // ─────────────────────────────────────────────
-function savePhoto() {
+function savePhoto(fmt = 'jpeg') {
   if (!S.baseCanvas) return;
   showLoader('Guardando…');
   setTimeout(() => {
     try {
       const final = applyAdj(S.baseCanvas) || S.baseCanvas;
-      const dataUrl = final.toDataURL('image/jpeg', 0.93);
+      const isPng = fmt === 'png';
+      const dataUrl = isPng
+        ? final.toDataURL('image/png')
+        : final.toDataURL('image/jpeg', 0.97);
       S.gallery.unshift({ dataUrl, ts: new Date().toISOString(), id: Date.now() });
       localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
       renderGallery();
 
       const a = document.createElement('a');
-      a.download = `phototake_${Date.now()}.jpg`;
+      a.download = `phototake_${Date.now()}.${isPng ? 'png' : 'jpg'}`;
       a.href = dataUrl;
       a.click();
 
-      toast('Guardada y descargada');
+      toast(isPng ? 'PNG lossless guardado' : 'JPEG guardado');
       switchTab('gal');
     } finally { hideLoader(); }
   }, 40);
@@ -1299,7 +1305,8 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 el('btn-cap').addEventListener('click', capture);
 el('btn-flip').addEventListener('click', () => { S.facing = S.facing === 'environment' ? 'user' : 'environment'; startCam(); });
 el('btn-torch').addEventListener('click', toggleTorch);
-el('btn-save').addEventListener('click', savePhoto);
+el('btn-save').addEventListener('click', () => savePhoto('jpeg'));
+el('btn-save-png').addEventListener('click', () => savePhoto('png'));
 el('btn-retake').addEventListener('click', () => switchTab('cam'));
 el('btn-apply-man').addEventListener('click', applyManual);
 
