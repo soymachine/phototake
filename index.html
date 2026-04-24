@@ -541,7 +541,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.9</span>
+    <span class="ver">v3.0</span>
   </div>
   <span class="pill loading" id="cv-status">INIT_</span>
 </header>
@@ -1205,40 +1205,54 @@ function applyManual() {
 // ─────────────────────────────────────────────
 //  SAVE
 // ─────────────────────────────────────────────
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 function savePhoto(fmt = 'jpeg') {
   if (!S.baseCanvas) return;
   const isPng = fmt === 'png';
-  showLoader('Guardando…');
-  setTimeout(() => {
+  const mime  = isPng ? 'image/png' : 'image/jpeg';
+  const ext   = isPng ? 'png' : 'jpg';
+
+  // Pixel ops run synchronously — keeps user-gesture context alive for share
+  const final = applyAdj(S.baseCanvas) || S.baseCanvas;
+
+  // Gallery: scaled thumbnail (max 600px wide) so localStorage never overflows
+  const sc = Math.min(1, 600 / final.width);
+  const tw = Math.round(final.width * sc), th = Math.round(final.height * sc);
+  const thumb = makeCanvas(tw, th);
+  thumb.getContext('2d').drawImage(final, 0, 0, tw, th);
+  S.gallery.unshift({ dataUrl: thumb.toDataURL('image/jpeg', 0.75), ts: new Date().toISOString(), id: Date.now() });
+  try { localStorage.setItem('pt_gal', JSON.stringify(S.gallery)); } catch {}
+  renderGallery();
+  switchTab('gal');
+
+  // Encode then share/download — toBlob runs off-thread, preserving gesture window
+  showLoader('Preparando archivo…');
+  final.toBlob(async blob => {
+    hideLoader();
+    const fname = `phototake_${Date.now()}.${ext}`;
+    const file  = new File([blob], fname, { type: mime });
     try {
-      const final = applyAdj(S.baseCanvas) || S.baseCanvas;
-      // Gallery thumbnail: always compact JPEG for localStorage budget
-      S.gallery.unshift({
-        dataUrl: final.toDataURL('image/jpeg', 0.82),
-        ts: new Date().toISOString(),
-        id: Date.now(),
-      });
-      localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
-      renderGallery();
-      // Download via Blob URL — handles large files reliably (data URLs can fail at 4K+)
-      final.toBlob(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `phototake_${Date.now()}.${isPng ? 'png' : 'jpg'}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        toast(isPng ? 'PNG guardado' : 'JPEG guardado');
-        switchTab('gal');
-        hideLoader();
-      }, isPng ? 'image/png' : 'image/jpeg', isPng ? undefined : 0.97);
+      // iOS + modern Android: native share sheet → "Guardar imagen" → Photos
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] });
+      } else {
+        triggerDownload(blob, fname);
+      }
+      toast(isPng ? 'PNG guardado' : 'JPEG guardado');
     } catch (e) {
-      hideLoader();
-      toast('Error al guardar');
+      if (e.name !== 'AbortError') {
+        triggerDownload(blob, fname);
+        toast(isPng ? 'PNG guardado' : 'JPEG guardado');
+      }
     }
-  }, 40);
+  }, mime, isPng ? undefined : 0.97);
 }
 
 // ─────────────────────────────────────────────
