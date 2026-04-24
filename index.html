@@ -541,7 +541,7 @@
 <header class="hdr">
   <div class="hdr-logo">
     <h1>PhotoTake</h1>
-    <span class="ver">v2.6</span>
+    <span class="ver">v2.7</span>
   </div>
   <span class="pill loading" id="cv-status">INIT_</span>
 </header>
@@ -946,11 +946,37 @@ function buildFilter() {
 
 function applyAdj(srcCanvas) {
   if (!srcCanvas) return null;
+  const { b, c, s } = S.adj;
+  const neg = S.negMode;
+  if (b === 0 && c === 0 && s === 0 && !neg) return null;
+
   const out = makeCanvas(srcCanvas.width, srcCanvas.height);
   const ctx = out.getContext('2d');
-  ctx.filter = buildFilter();
   ctx.drawImage(srcCanvas, 0, 0);
-  ctx.filter = 'none';
+
+  const id = ctx.getImageData(0, 0, out.width, out.height);
+  const d = id.data;
+  const bF = 1 + b / 100;
+  const cF = (c + 100) / 100;
+  const sF = (s + 100) / 100;
+
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], g = d[i + 1], bl = d[i + 2];
+
+    if (b !== 0) { r *= bF; g *= bF; bl *= bF; }
+    if (c !== 0) { r = (r-128)*cF+128; g = (g-128)*cF+128; bl = (bl-128)*cF+128; }
+    if (s !== 0) {
+      const gr = 0.2126*r + 0.7152*g + 0.0722*bl;
+      r = gr+(r-gr)*sF; g = gr+(g-gr)*sF; bl = gr+(bl-gr)*sF;
+    }
+    if (neg)        { r = 255-r; g = 255-g; bl = 255-bl; }
+    if (neg==='bw') { const gr = 0.2126*r+0.7152*g+0.0722*bl; r=g=bl=gr; }
+
+    d[i]   = r  < 0 ? 0 : r  > 255 ? 255 : r;
+    d[i+1] = g  < 0 ? 0 : g  > 255 ? 255 : g;
+    d[i+2] = bl < 0 ? 0 : bl > 255 ? 255 : bl;
+  }
+  ctx.putImageData(id, 0, 0);
   return out;
 }
 
@@ -1177,21 +1203,25 @@ function applyManual() {
 //  SAVE
 // ─────────────────────────────────────────────
 function savePhoto() {
-  const final = applyAdj(S.baseCanvas) || S.baseCanvas;
-  if (!final) return;
+  if (!S.baseCanvas) return;
+  showLoader('Guardando…');
+  setTimeout(() => {
+    try {
+      const final = applyAdj(S.baseCanvas) || S.baseCanvas;
+      const dataUrl = final.toDataURL('image/jpeg', 0.93);
+      S.gallery.unshift({ dataUrl, ts: new Date().toISOString(), id: Date.now() });
+      localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
+      renderGallery();
 
-  const dataUrl = final.toDataURL('image/jpeg', 0.93);
-  S.gallery.unshift({ dataUrl, ts: new Date().toISOString(), id: Date.now() });
-  localStorage.setItem('pt_gal', JSON.stringify(S.gallery));
-  renderGallery();
+      const a = document.createElement('a');
+      a.download = `phototake_${Date.now()}.jpg`;
+      a.href = dataUrl;
+      a.click();
 
-  const a = document.createElement('a');
-  a.download = `phototake_${Date.now()}.jpg`;
-  a.href = dataUrl;
-  a.click();
-
-  toast('Guardada y descargada');
-  switchTab('gal');
+      toast('Guardada y descargada');
+      switchTab('gal');
+    } finally { hideLoader(); }
+  }, 40);
 }
 
 // ─────────────────────────────────────────────
